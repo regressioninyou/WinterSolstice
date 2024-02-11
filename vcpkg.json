@@ -1,0 +1,12 @@
+{
+  "dependencies": [
+    "assimp",
+    "entt",
+    "glad",
+    "pugixml",
+    "shaderc",
+    "spdlog",
+    "spirv-cross",
+    "glm"
+  ]
+}

@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<Scene>
+	<Entity>
+		<Tag name="Green Square1" />
+		<Transform>
+			<Translation type="Float3" x="1" y="2.5999999" z="1" />
+			<Rotation type="Float3" x="0" y="0" z="0" />
+			<Scale type="Float3" x="1" y="1" z="1" />
+		</Transform>
+		<SpriteRendererComponent>
+			<Color type="Float3" r="0.0725093484" g="0.98841697" b="0.0725093484" a="1" />
+		</SpriteRendererComponent>
+	</Entity>
+	<Entity>
+		<Tag name="Green Square2" />
+		<Transform>
+			<Translation type="Float3" x="1" y="1.70000005" z="1" />
+			<Rotation type="Float3" x="0" y="0" z="0" />
+			<Scale type="Float3" x="1" y="1" z="1" />
+		</Transform>
+		<SpriteRendererComponent>
+			<Color type="Float3" r="0" g="0" b="1" a="1" />
+		</SpriteRendererComponent>
+	</Entity>
+	<Entity>
+		<Tag name="Green Square3" />
+		<Transform>
+			<Translation type="Float3" x="-0.699999988" y="1" z="1" />
+			<Rotation type="Float3" x="0" y="0" z="0" />
+			<Scale type="Float3" x="1" y="1" z="1" />
+		</Transform>
+		<SpriteRendererComponent>
+			<Color type="Float3" r="1" g="1" b="1" a="1" />
+		</SpriteRendererComponent>
+	</Entity>
+	<Entity>
+		<Tag name="Green Square4" />
+		<Transform>
+			<Translation type="Float3" x="1" y="1" z="1" />
+			<Rotation type="Float3" x="0" y="0" z="0" />
+			<Scale type="Float3" x="1" y="1" z="1" />
+		</Transform>
+		<SpriteRendererComponent>
+			<Color type="Float3" r="1" g="1" b="0" a="1" />
+		</SpriteRendererComponent>
+	</Entity>
+	<Entity>
+		<Tag name="Camera" />
+		<Transform>
+			<Translation type="Float3" x="1" y="1" z="1" />
+			<Rotation type="Float3" x="0" y="0" z="0" />
+			<Scale type="Float3" x="1" y="1" z="1" />
+		</Transform>
+		<Camera>
+			<Primary type="bool" value="true" />
+			<FixedAspectRatio type="bool" value="false" />
+			<SceneCamera type="float" OrthographicSize="10" OrthographicNear="-1" OrthographicFar="1" PerspectiveFOV="40" PerspectiveNear="-1" PerspectiveFar="1000" />
+		</Camera>
+	</Entity>
+	<Entity>
+		<Tag name="Clip-Space Entity" />
+		<Transform>
+			<Translation type="Float3" x="1" y="1" z="1" />
+			<Rotation type="Float3" x="0" y="0" z="0" />
+			<Scale type="Float3" x="1" y="1" z="1" />
+		</Transform>
+		<Camera>
+			<Primary type="bool" value="false" />
+			<FixedAspectRatio type="bool" value="false" />
+			<SceneCamera type="float" OrthographicSize="10" OrthographicNear="-1" OrthographicFar="1" PerspectiveFOV="40" PerspectiveNear="-1" PerspectiveFar="1000" />
+		</Camera>
+	</Entity>
+</Scene>
