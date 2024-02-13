@@ -21,6 +21,7 @@ namespace WinterSolstice {
 			};
 			static void Init();
 			static void Shutdown();
+			static void ResetStats();
 			static void OnWindowResize(uint32_t width, uint32_t height);
 			static void BeginScene(const Rossweisse::SceneCamera& camera, glm::mat4& transform);
 			static void BeginScene(const Rossweisse::OrthographicCamera& camera);
@@ -28,7 +29,7 @@ namespace WinterSolstice {
 			static void EndSceneShadowMap();
 			static void ExecuteShadowMap();
 			static void EndScene();
-			static void Execute();
+			static void Flush();
 
 
 			static void Submit(const std::shared_ptr<VertexArray>& vertexArry, const std::shared_ptr<Shader>& shader);

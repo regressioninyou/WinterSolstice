@@ -10,8 +10,11 @@ namespace WinterSolstice {
 			None = 0,
 
 			// Color
+			RGBA,
 			RGBA8,
+			RGBA16F,
 			RED_INTEGER,
+
 
 			// Depth/stencil
 			DEPTH24STENCIL8,
@@ -74,7 +77,12 @@ namespace WinterSolstice {
 			virtual const FramebufferSpecification& GetSpecification() const = 0;
 
 			virtual void BindTextureID(FramebufferTextureFormat format, uint32_t slot) = 0;
+			virtual void BindColorAttachments() = 0;
 			virtual void UnBindTextureID(FramebufferTextureFormat format, uint32_t slot) = 0;
+
+			virtual uint32_t GetRendererID() = 0;
+			virtual void ToOtherFramebuffer(uint32_t slot = 0) = 0;
+			virtual void ToOtherFramebuffer(uint32_t slot,const FramebufferSpecification& slotFormat) = 0;
 
 			static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
 		};

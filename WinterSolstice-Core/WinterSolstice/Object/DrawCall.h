@@ -126,15 +126,15 @@ namespace WinterSolstice {
 				addTexture(reset);
 				return;
 			}
+			textures.erase(it);
 			auto resetIt = textures.find(reset->getName());
 			if (resetIt == textures.end()) {
-				it->second = reset;
-
+				addTexture(reset);
 			}
-			else {
-				it->second = reset;
-				textures.erase(resetIt);
-			}
+			//else {
+				//it->second = reset;
+				//textures.erase(resetIt);
+			//}
 		}
 		virtual bool isTranslucent()
 		{

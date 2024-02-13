@@ -25,9 +25,17 @@ namespace WinterSolstice {
 			virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; }
 
 			virtual void BindTextureID(FramebufferTextureFormat format, uint32_t slot) override;
+			virtual void BindColorAttachments() override;
 			virtual void UnBindTextureID(FramebufferTextureFormat format, uint32_t slot) override;
-			virtual uint32_t GetDepthAttachmentRendererID(uint32_t index = 0) const override 
-			{ Kiana_CORE_ASSERT(index < m_ColorAttachments.size()); return m_DepthAttachment; }
+
+			virtual uint32_t GetRendererID()override;
+			virtual void ToOtherFramebuffer(uint32_t slot = 0) override;
+			virtual void ToOtherFramebuffer(uint32_t slot,const FramebufferSpecification& slotFormat) override;
+
+			virtual uint32_t GetDepthAttachmentRendererID(uint32_t index = 0) const override
+			{
+				Kiana_CORE_ASSERT(index < m_ColorAttachments.size()); return m_DepthAttachment;
+			}
 		private:
 			uint32_t m_RendererID = 0;
 			FramebufferSpecification m_Specification;

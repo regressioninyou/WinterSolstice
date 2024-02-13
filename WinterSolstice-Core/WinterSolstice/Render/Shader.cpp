@@ -106,6 +106,11 @@ namespace WinterSolstice {
 			return m_Shaders[name];
 		}
 
+		Ref<Shader> ShaderLibrary::GetAs(const std::string& name)
+		{
+			return Ref<Shader>();
+		}
+
 		bool ShaderLibrary::Exists(const std::string& name) const
 		{
 			return m_Shaders.find(name) != m_Shaders.end();

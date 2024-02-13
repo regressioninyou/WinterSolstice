@@ -22,10 +22,11 @@ namespace WinterSolstice {
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
 
-		// 通过 Window 继承
 		glm::vec2 GetWindowPos() const override;
 
 		inline virtual void* GetNativeWindow() const { return m_Window; }
+
+		virtual void MakeCurrentContext() override;
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();

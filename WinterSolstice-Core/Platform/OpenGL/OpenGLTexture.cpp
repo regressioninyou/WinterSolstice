@@ -3,6 +3,7 @@
 
 #include "Platform/load/stb_image/stb_image.h"
 #include <glad/glad.h>
+#include "WinterSolstice/Core/Application.h"
 
 namespace WinterSolstice {
 	namespace Bronya {
@@ -118,7 +119,7 @@ namespace WinterSolstice {
 				BuildState = true;
 			}
 			else {
-				Kiana_CORE_WARN("Texture : {0} loader 失败",path.c_str());
+				Kiana_CORE_WARN("Texture : {0} loader 失败", path.c_str());
 				SetUse(false);
 				BuildState = false;
 			}
@@ -309,5 +310,5 @@ namespace WinterSolstice {
 		void OpenGLFrameBufferTexture::SetBuildState(bool set)
 		{
 		}
-}
+	}
 }

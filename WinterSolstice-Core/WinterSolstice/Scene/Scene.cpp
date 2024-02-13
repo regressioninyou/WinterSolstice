@@ -438,26 +438,35 @@ namespace WinterSolstice {
 		}
 		void Scene::RenderScene(Rossweisse::EditorCamera& camera)
 		{
-			Bronya::Renderer2D::BeginScene(camera);
-			Bronya::Renderer::BeginScene(camera);
-			//auto translation = m_Registry.get<TransformComponent>(root->entity);
+			Application::Get().RenderThread()->AddTaskAwait([this, camera]()
+				{
+					Bronya::Renderer::ResetStats();
+					Bronya::Renderer::BeginScene(camera);
 
-			RecaculateTransformNode();
-			SubmitRenderMesh();
-			//SubmitEntity3D(root, translation);
-			Bronya::Renderer::EndScene();
-			Bronya::Renderer2D::EndScene();
+					Bronya::Renderer2D::ResetStats();
+					Bronya::Renderer2D::BeginScene(camera);
+					//});
+				//auto translation = m_Registry.get<TransformComponent>(root->entity);
+
+					RecaculateTransformNode();
+					SubmitRenderMesh();
+					//SubmitEntity3D(root, translation);
+					//Application::Get().RenderThread()->AddTaskAwait([this]()
+						//{
+					Bronya::Renderer::EndScene();
+					Bronya::Renderer2D::EndScene();
+				});
 		}
 
 		void Scene::RecaculateTransformNode()
 		{
+			WaitTransformTask.clear();
 			WaitRecaculateTransformNode(root, glm::mat4(1.0f));
 			for (auto& get : WaitTransformTask) {
 				if (get.valid()) {
 					get.get();
 				}
 			}
-			WaitTransformTask.clear();
 		}
 
 		void Scene::WaitRecaculateTransformNode(Ref<Scene::ListNode>& root, glm::mat4 translation, int depth)
@@ -483,33 +492,31 @@ namespace WinterSolstice {
 
 		void Scene::SubmitRenderMesh()
 		{
+			WaitRenderTasks.clear();
 			{
-				auto group = m_Registry.group<ObjectComponent>(entt::get<TransformComponent>);
+				auto group = m_Registry.group<TransformComponent, MaterialComponent>(entt::get<ObjectComponent>);
 				for (auto& entity : group) {
-					auto [transform, object] = group.get<TransformComponent, ObjectComponent>(entity);
+					auto [transform, object, PBR] = group.get<TransformComponent, ObjectComponent, MaterialComponent>(entity);
 					if (object.object->GetObjectClass() == ObjectClass::Mesh) {
 						auto mesh = object.object;
-						WaitRenderTasks.emplace_back(Application::GetThreadPool().AnsycTask([entity, this, mesh]()->int
+						WaitRenderTasks.emplace_back(Application::GetThreadPool().AnsycTask([transform, entity, this, mesh, PBR]()->int
 							{
 								auto it = m_TransformMat.find((uint32_t)entity);
 								if (it != m_TransformMat.end()) {
-									Entity comp(entity, this);
-									auto& s = comp.GetComponent<MaterialComponent>();
-									auto& shaders = s.material;
-									auto trans = comp.GetComponent<TransformComponent>().GetTransform() * it->second;
+									//Entity comp(entity, this);
+									auto& shaders = PBR.material;
+									auto trans = transform.GetTransform() * it->second;
 									DrawCall* drawCall = dynamic_cast<DrawCall*>(mesh.get());
-									{
-										//if (shaders->) {
-										for (auto& shader : *shaders) {
-											auto material = shader.second;
-											auto task = [material, drawCall, trans]()->bool {
-												material->SetMat4("uModel", trans);
-												drawCall->BindTexture(material);
-												return drawCall->isReady();
-												};
-											Bronya::Renderer::SubmitQue(drawCall->getVertexArray(), material,
-												task, mesh->GetZBuffer(), drawCall->isTranslucent());
-										}
+									for (auto& shader : *shaders) {
+										auto material = shader.second;
+										auto task = [material, drawCall, trans, entity]()->bool {
+											material->SetInt("uEntity", (int)entity);
+											material->SetMat4("uModel", trans);
+											drawCall->BindTexture(material);
+											return drawCall->isReady();
+											};
+										Bronya::Renderer::SubmitQue(drawCall->getVertexArray(), material,
+											task, mesh->GetZBuffer(), drawCall->isTranslucent());
 									}
 								}
 								return 1;
@@ -517,21 +524,18 @@ namespace WinterSolstice {
 					}
 				}
 			}
-
-			//{
-			//	auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-			//	for (auto entity : group)
-			//	{
-			//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-			//		auto it = m_TransformMat.find((uint32_t)entity);
-			//		if (it != m_TransformMat.end()) {
-			//			auto trans = transform.GetTransform() * it->second;
-			//			Bronya::Renderer2D::DrawSprite(trans, sprite, (int)entity);
-			//		}
-			//	}
-			//}
-			// Draw circles
 			{
+				//auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+				//for (auto entity : group)
+				//{
+					//auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+					//auto it = m_TransformMat.find((uint32_t)entity);
+					//if (it != m_TransformMat.end()) {
+						//auto trans = transform.GetTransform() * it->second;
+						//Bronya::Renderer2D::DrawSprite(trans, sprite, (int)entity);
+					//}
+				//}
+
 				auto view = m_Registry.view<TransformComponent, CircleRendererComponent>();
 				for (auto entity : view)
 				{
@@ -548,7 +552,6 @@ namespace WinterSolstice {
 					task.get();
 				}
 			}
-			WaitRenderTasks.clear();
 
 		}
 

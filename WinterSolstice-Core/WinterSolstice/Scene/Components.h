@@ -112,6 +112,7 @@ namespace WinterSolstice {
 			operator glm::vec4& () { return Color; }
 			operator const glm::vec4& () const { return Color; }
 		};
+
 		struct AwalysShineComponent {
 			Ref<Kallen::Light> AwalysShine;
 			AwalysShineComponent() = default;

@@ -40,6 +40,8 @@ namespace WinterSolstice {
 		virtual bool IsVSync() const = 0;
 
 		virtual void* GetNativeWindow() const = 0;
+		
+		virtual void MakeCurrentContext() = 0;
 
 		static Window* Create(const WindowProps& props = WindowProps());
 	};

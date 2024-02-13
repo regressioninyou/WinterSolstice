@@ -2,6 +2,7 @@
 #include "EditorLayout.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "WinterSolstice/Utils/PlatformUtils.h"
+#define SHADERSOURCE(x) std::string("T:/orther/main/c++/WinterSolstice/WinterSolstice-Editory/assets/shaders/").append(x)
 namespace WinterSolstice {
 	EditorLayout::EditorLayout()
 		:Layer("Editor")
@@ -15,7 +16,10 @@ namespace WinterSolstice {
 	{
 		m_Texture2D = Bronya::Texture2D::Create("./assets/textures/Checkerboard.png");
 		Bronya::FramebufferSpecification fbsf;
-		fbsf.Attachments = { Bronya::FramebufferTextureFormat::RGBA8,
+		fbsf.Attachments = {
+			Bronya::FramebufferTextureFormat::RGBA16F,
+			Bronya::FramebufferTextureFormat::RGBA16F,
+			Bronya::FramebufferTextureFormat::RGBA8,
 			Bronya::FramebufferTextureFormat::RED_INTEGER,
 			Bronya::FramebufferTextureFormat::Depth
 		};
@@ -23,123 +27,83 @@ namespace WinterSolstice {
 		fbsf.Height = 900.0f;
 		m_Framebuffer = Bronya::Framebuffer::Create(fbsf);
 
+		Bronya::FramebufferSpecification gBuffer;
+		gBuffer.Attachments = {
+			Bronya::FramebufferTextureFormat::RGBA16F,
+			Bronya::FramebufferTextureFormat::RED_INTEGER,
+			Bronya::FramebufferTextureFormat::Depth
+		};
+		gBuffer.Width = 1600.0f;
+		gBuffer.Height = 900.0f;
+
+		m_Gbuffer = Bronya::Framebuffer::Create(gBuffer);
+
 		m_ActiveScene = CreateRef<Raiden::Scene>();
 		m_ActiveScene->SetDefaultImage(m_Texture2D);
 
 		editorCamera = Rossweisse::EditorCamera(30.0f, 1.778f, 0.5f, 5000.0f);
-#if 0
-		auto square = m_ActiveScene->CreateEntity("Green Square1");
-		square.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.0f,1.0f,0.0f,1.0f });
-		auto square1 = m_ActiveScene->CreateEntity("Green Square2");
-		square1.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.0f,0.0f,1.0f,1.0f });
-		auto square2 = m_ActiveScene->CreateEntity("Green Square3");
-		square2.AddComponent<SpriteRendererComponent>(glm::vec4{ 0.0f,1.0f,1.0f,1.0f });
-		auto square3 = m_ActiveScene->CreateEntity("Green Square4");
-		square3.AddComponent<SpriteRendererComponent>(glm::vec4{ 1.0f,1.0f,0.0f,1.0f });
 
-		m_SquareEntity = square;
-
-		m_CameraEntity = m_ActiveScene->CreateEntity("Camera");
-		m_CameraEntity.AddComponent<CameraComponent>();
-
-		m_SecondCamera = m_ActiveScene->CreateEntity("Clip-Space Entity");
-		auto& cc = m_SecondCamera.AddComponent<CameraComponent>();
-		cc.Primary = false;
-
-		class CameraContorller :public ScritableEntity
-		{
-		public:
-			void OnCreate()
-			{
-				auto& transform = GetComponent<TransformComponent>().Translation;
-				//transform.x = (float)(rand() % 10 - 5.0f);
-			}
-			void OnDestory() {
-
-			}
-			void OnUpdate(Timestep ts)
-			{
-				auto& transform = GetComponent<TransformComponent>().Translation;
-				float speed = 5.0f;
-				if (Input::IsKeyPressed(Key::Left))
-					transform.x += speed * ts;
-				else if (Input::IsKeyPressed(Key::Right))
-					transform.x -= speed * ts;
-				if (Input::IsKeyPressed(Key::Down))
-					transform.y += speed * ts;
-				else if (Input::IsKeyPressed(Key::Up))
-					transform.y -= speed * ts;
-
-			}
-		private:
-		};
-		//m_SecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraContorller>();
-		//m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraContorller>();
-
-#endif
-
-
-
-		//std::string TvsSrc = R"(
-
-		//)";
-		//std::string TfsSrc = R"(
-
-//)";
-		std::string msSrc = R"(
-#version 450 core
-#extension GL_NV_mesh_shader : require
-
-layout(points) in;
-layout(triangle, max_vertices = 3) out;
-
-layout(location = 0) in vec3 aPosition;
-layout(location = 1) in vec3 aNormal;
-layout(location = 2) in vec2 aTexcoord;
-
-uniform mat4 uViewProjection;
-uniform mat4 uModel;
-
-out vec2 vTexcoord;
-
-void main() {
-    vec4 position =  uViewProjection * vec4(aPosition, 1.0f);
-
-    // 顶点处理逻辑
-    vTexcoord = aTexcoord;
-
-    // 几何处理逻辑
-    for (int i = 0; i < 3; ++i) {
-        gl_Position = position;
-        EmitVertex();
-    }
-}
-)";
 		m_ShaderLibrary->Add("Tirangle", Bronya::Shader::Create("./assets/shaders/Model_vs.glsl", "./assets/shaders/Model_fs.glsl"));
 		//m_ShaderLibrary->Add("Blue", KyBao::Shader::CreateMeshShader("MeshShader", msSrc));
 		m_ShaderLibrary->Add("Blue", Bronya::Shader::Create("./assets/shaders/Texture_vs.glsl", "./assets/shaders/Texture_fs.glsl"));
 		//obj = KyBao::Loder::Get()->loadOBJ("./assets/Model/nanosuit/nanosuit.obj");
 		//obj = KyBao::Loder::Get()->loadOBJ("C:/Users/sa/Desktop/Assest/just-a-girl/source/final_v01.obj");
 		m_Hierarchy.SetContext(m_ActiveScene);
+
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		};
+		uint32_t offset = 0;
+
+		uint32_t quadIndices[] = { 0, 1, 2,1, 3, 2 };
+		m_SquareVA = Bronya::VertexArray::Create();
+		auto vabuffer = Bronya::VertexBuffer::Create(quadVertices, sizeof(quadVertices));
+		{
+			Bronya::BufferLayout layer = {
+				{ Bronya::ShaderDataType::Float3,"aPosition"},
+				{ Bronya::ShaderDataType::Float2,"aTexCoord"}
+			};
+			vabuffer->SetLayout(layer);
+		}
+		auto idsbuffer = Bronya::IndexBuffer::Create(quadIndices, 6);
+		m_SquareVA->AddVertexBuffer(vabuffer);
+		m_SquareVA->SetIndexBuffer(idsbuffer);
+		m_SquareVAShader = Bronya::Shader::Create(SHADERSOURCE("GBuffer/deferred.vs"), SHADERSOURCE("GBuffer/deferred.fs"));
+		const unsigned int NR_LIGHTS = 32;
+		for (unsigned int i = 0; i < NR_LIGHTS; i++)
+		{
+			// calculate slightly random offsets
+			float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+			float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
+			float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+			lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
+			// also calculate random color
+			float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
+			float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
+			float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
+			lightColors.push_back(glm::vec3(rColor, gColor, bColor));
+		}
 	}
 
 	void EditorLayout::OnDetach()
 	{
 	}
-
+#define USE_IMGUI_GBUFFER true
 	void EditorLayout::OnUpdate(Kiana::Timestep ts)
 	{
-		if (Bronya::FramebufferSpecification spec = m_Framebuffer->GetSpecification();
+		if (Bronya::FramebufferSpecification spec = m_Gbuffer->GetSpecification();
 			m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f && // zero sized framebuffer is invalid
-			(spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y))
+			(spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y + 50))
 		{
-#ifdef MoreAndMore
-			Application::Get().GetMainThread()->AddTaskTop([this]() {
-				m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+			Application::Get().RenderThread()->AddTaskAwait([this]()
+				{
+					m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y + 50);
+					m_Gbuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y + 50);
 				});
-#else
-			m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-#endif
 			//m_CameraController.OnResize(m_ViewportSize.x, m_ViewportSize.y);
 			editorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 			m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
@@ -150,13 +114,16 @@ void main() {
 		}
 		editorCamera.OnUpdate(ts);
 
+
 		Himeko::WokerInfo<void()> info;
 		info.WokerFunction = [this, ts]()
 			{
-				Bronya::Renderer2D::ResetStats();
+				m_Framebuffer->Bind();
 				Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
 				Bronya::RenderCommand::Clear();
+				m_Framebuffer->ClearAttachment(3, -1);
 
+				m_ActiveScene->OnUpdateEditor(ts, editorCamera);
 				//if (m_ActiveScene->rootBone) {
 				//	for (auto& ani : m_ActiveScene->rootBone->name_Animation_map) {
 				//		m_ActiveScene->rootBone->Update(ts, ani.first);
@@ -174,9 +141,9 @@ void main() {
 				//		shader->SetMat4s("gBones", m_ActiveScene->rootBone->IDCurrentAnimationTransformMap);
 				//	}
 				//}
-				m_ActiveScene->OnUpdateEditor(ts, editorCamera);
 				//m_ActiveScene->OnUpdateRuntime(ts);
-
+				Bronya::Renderer::Flush();
+				Bronya::Renderer2D::Flush();
 				auto [mx, my] = ImGui::GetMousePos();
 				mx -= m_ViewportBound[0].x;
 				my -= m_ViewportBound[0].y;
@@ -187,28 +154,84 @@ void main() {
 
 				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 				{
-					int redPexile = m_Framebuffer->ReadPixel(1, mouseX, mouseY);
+					int redPexile = m_Framebuffer->ReadPixel(3, mouseX, mouseY);
 					{
-
+						Kiana_CORE_INFO("m_Framebuffer ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
 					}
 				}
-				Bronya::Renderer::Execute();
-
+				m_Framebuffer->Unbind();
 			};
 
-		info.FunctionInfo = "Editor Layout __Line__";
-#ifdef  MoreAndMore
-		Application::Get().GetMainThread()->AddTaskTop(info);
-#else
-		m_Framebuffer->ClearAttachment(1, -1);
-		m_Framebuffer->Bind();
-		info.WokerFunction();
-		m_Framebuffer->Unbind();
-#endif //  MoreAndMore
+		info.FunctionInfo = "Editor Layout ";
+#if USE_IMGUI_GBUFFER
+		Application::Get().RenderThread()->AddTaskAwaitInfo(info);
+#endif
+		auto task = [this]()->bool
+			{
+				m_Framebuffer->BindColorAttachments();
+				for (unsigned int i = 0; i < lightPositions.size(); i++)
+				{
+					m_SquareVAShader->SetFloat3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
+					m_SquareVAShader->SetFloat3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
+					// update attenuation parameters and calculate radius
+					const float constant = 1.0f; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
+					const float linear = 0.7f;
+					const float quadratic = 1.8f;
+					m_SquareVAShader->SetFloat("lights[" + std::to_string(i) + "].Linear", linear);
+					m_SquareVAShader->SetFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
+					// then calculate radius of light volume/sphere
+					const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
+					float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
+					m_SquareVAShader->SetFloat("lights[" + std::to_string(i) + "].Radius", radius * 10.0f);
+				}
+				m_SquareVAShader->SetFloat("viewWidth", m_ViewportSize.x);
+				m_SquareVAShader->SetFloat("viewHeight", m_ViewportSize.y);
+				m_SquareVAShader->SetFloat3("viewPos", editorCamera.GetPosition());
+				return true;
+			};
 
-		//bvh.FlushBVH(obj->GetOBJ());
+#if USE_IMGUI_GBUFFER
+		AwaitSwapFramerBufferAndInitScene(m_Framebuffer, m_Gbuffer, task);
+#endif
+		auto SubScreen = [this, info]()
+			{
+				m_Gbuffer->Bind();
+#if !USE_IMGUI_GBUFFER
+				Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
+				Bronya::RenderCommand::Clear();
+				m_Gbuffer->ClearAttachment(1, -1);
+#endif
+				Bronya::Renderer2D::ResetStats();
+				Bronya::Renderer2D::BeginScene(editorCamera);
+				glm::mat4 model = glm::mat4(1.0f);
+				for (unsigned int i = 0; i < lightPositions.size(); i++)
+				{
+					model = glm::mat4(1.0f);
+					model = glm::translate(model, lightPositions[i]);
+					model = glm::scale(model, glm::vec3(0.125f));
+					Bronya::Renderer2D::DrawCircle(model, glm::vec4(lightColors[i], 1.0f), 1.0f, 0.005f, i + 1);
+				}
+				Bronya::Renderer2D::EndScene();
+				Bronya::Renderer2D::Flush();
+				auto [mx, my] = ImGui::GetMousePos();
+				mx -= m_ViewportBound[0].x;
+				my -= m_ViewportBound[0].y;
+				glm::vec2 viewportSize = m_ViewportBound[1] - m_ViewportBound[0];
+				my = viewportSize.y - my;
+				int mouseX = (int)mx;
+				int mouseY = (int)my;
+
+				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+				{
+					int redPexile = m_Gbuffer->ReadPixel(1, mouseX, mouseY);
+					{
+						Kiana_CORE_INFO("m_Gbuffer ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
+					}
+				}
+				m_Gbuffer->Unbind();
+			};
+		Application::Get().RenderThread()->AddTaskAwait(SubScreen);
 	}
-
 	void EditorLayout::OnImGuiRender()
 	{
 		static bool dockspaceOpen = true;
@@ -304,39 +327,96 @@ void main() {
 
 		ImGui::End();
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0,0 });
-		ImGui::Begin("Render");
-		auto viewportOffset = ImGui::GetCursorPos(); // Includes tab bar
-
-		m_ViewportFocus = ImGui::IsWindowFocused();
-		m_ViewportHovers = ImGui::IsWindowHovered();
-		Application::Get().GetImGuiLayer()->SetBlockFocosEvents(!m_ViewportFocus || !m_ViewportHovers);
-
-		uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID();
-		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-		m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
-		ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
-
-		auto windowSize = ImGui::GetWindowSize();
-		ImVec2 minBound = ImGui::GetWindowPos();
-
-		minBound.x += viewportOffset.x;
-		minBound.y += viewportOffset.y;
-		ImVec2 maxBound = { minBound.x + windowSize.x,minBound.y + windowSize.y };
-		m_ViewportBound[0] = { minBound.x,minBound.y };
-		m_ViewportBound[1] = { maxBound.x,maxBound.y };
-
-
-		Raiden::Entity selectedEntity = m_Hierarchy.SeletedEntity();
-		if (selectedEntity)
 		{
+			ImGui::Begin("Render");
+			auto viewportOffset = ImGui::GetCursorPos(); // Includes tab bar
 
+			m_ViewportFocus = ImGui::IsWindowFocused();
+			m_ViewportHovers = ImGui::IsWindowHovered();
+			Application::Get().GetImGuiLayer()->SetBlockFocosEvents(!m_ViewportFocus || !m_ViewportHovers);
+
+			uint32_t renderID = m_Gbuffer->GetColorAttachmentRendererID();
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
+			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
+
+			auto windowSize = ImGui::GetWindowSize();
+			ImVec2 minBound = ImGui::GetWindowPos();
+			WindowSize.x = windowSize.x;
+			WindowSize.y = windowSize.y;
+			WindowPos.x = minBound.x;
+			WindowPos.y = minBound.y;
+
+			minBound.x += viewportOffset.x;
+			minBound.y += viewportOffset.y;
+			ImVec2 maxBound = { minBound.x + windowSize.x,minBound.y + windowSize.y };
+			m_ViewportBound[0] = { minBound.x,minBound.y };
+			m_ViewportBound[1] = { maxBound.x,maxBound.y };
+
+
+			Raiden::Entity selectedEntity = m_Hierarchy.SeletedEntity();
+			if (selectedEntity)
+			{
+
+			}
+
+			ImGui::End();
 		}
+#if USE_IMGUI_GBUFFER
+		{
+			ImGui::Begin("GBufferPosition");
 
-		ImGui::End();
+			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID();
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
+			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
+
+
+			ImGui::End();
+		}
+		{
+			ImGui::Begin("GBufferNormal");
+
+			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(1);
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
+			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
+
+
+			ImGui::End();
+		}
+		{
+			ImGui::Begin("GBufferAlbedo");
+
+			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(2);
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
+			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
+
+
+			ImGui::End();
+		}
+		if (1) {
+			ImGui::Begin("GBufferEntity");
+
+			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(3);
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
+			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
+
+
+			ImGui::End();
+		}
+#endif
 		ImGui::PopStyleVar();
 
 		ImGui::End();
+
 	}
 
 	void EditorLayout::OnEvent(KnowTreasure::Event& event)
@@ -434,7 +514,10 @@ void main() {
 				childnow.current = childpair.second->child[childpair.first];
 				//设置子节点的材质
 				auto ShaderLibrary = CreateRef<Bronya::ShaderLibrary>();
-				ShaderLibrary->Add("BaseMaterial" + elemnt->GetName(), Bronya::Shader::Create("./assets/shaders/Texture_vs.glsl", "./assets/shaders/Texture_fs.glsl"));
+				//ShaderLibrary->Add("BaseMaterial" + elemnt->GetName(),
+					//Bronya::Shader::Create("./assets/shaders/Texture_vs.glsl", "./assets/shaders/Texture_fs.glsl"));
+				ShaderLibrary->Add("g_BufferMaterial" + elemnt->GetName(),
+					Bronya::Shader::Create(SHADERSOURCE("GBuffer/g_Buffer.vs"), SHADERSOURCE("GBuffer/g_Buffer.fs")));
 				child.AddComponent<Raiden::MaterialComponent>(ShaderLibrary);
 				auto texs = child.AddComponent<Raiden::SpriteRendererComponent>();
 				DrawCall* drawCall = dynamic_cast<DrawCall*>(elemnt.get());
@@ -462,5 +545,73 @@ void main() {
 			m_ActiveScene->rootBone = loder.bone;
 		}
 	}
+	void EditorLayout::AwaitSwapFramerBufferAndInitScene(Ref<Bronya::Framebuffer> from, Ref<Bronya::Framebuffer> to, std::function<bool()> callback)
+	{
+		Application::Get().RenderThread()->AddTaskAwait([this, from, to, callback]()
+			{
+				to->Bind();
+				Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
+				Bronya::RenderCommand::Clear();
+				to->ClearAttachment(1, -1);
+				auto [mx, my] = ImGui::GetMousePos();
+				mx -= m_ViewportBound[0].x;
+				my -= m_ViewportBound[0].y;
+				glm::vec2 viewportSize = m_ViewportBound[1] - m_ViewportBound[0];
+				my = viewportSize.y - my;
+				int mouseX = (int)mx;
+				int mouseY = (int)my;
 
+				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+				{
+					int redPexile = to->ReadPixel(1, mouseX, mouseY);
+					{
+						Kiana_CORE_INFO("to ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
+					}
+				}
+				Bronya::Renderer::ResetStats();
+				Bronya::Renderer::BeginScene(editorCamera);
+
+				Bronya::Renderer::SubmitQue(m_SquareVA, m_SquareVAShader, std::move(callback), glm::vec3(0.0f), true);
+				Bronya::Renderer::EndScene();
+				Bronya::Renderer::Flush();
+
+				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+				{
+					int redPexile = to->ReadPixel(1, mouseX, mouseY);
+					{
+						Kiana_CORE_INFO("to ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
+					}
+				}
+				from->ToOtherFramebuffer(to->GetRendererID(), to->GetSpecification());
+			});
+	}
+	std::string msSrc = R"(
+		#version 450 core
+		#extension GL_NV_mesh_shader : require
+
+		layout(points) in;
+		layout(triangle, max_vertices = 3) out;
+
+		layout(location = 0) in vec3 aPosition;
+		layout(location = 1) in vec3 aNormal;
+		layout(location = 2) in vec2 aTexcoord;
+
+		uniform mat4 uViewProjection;
+		uniform mat4 uModel;
+
+		out vec2 vTexcoord;
+
+		void main() {
+			vec4 position =  uViewProjection * vec4(aPosition, 1.0f);
+
+			// 顶点处理逻辑
+			vTexcoord = aTexcoord;
+
+			// 几何处理逻辑
+			for (int i = 0; i < 3; ++i) {
+				gl_Position = position;
+				EmitVertex();
+			}
+		}
+		)";
 }

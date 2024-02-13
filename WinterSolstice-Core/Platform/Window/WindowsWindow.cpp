@@ -32,6 +32,11 @@ namespace WinterSolstice {
 		Shutdown();
 	}
 
+	void WindowsWindow::MakeCurrentContext()
+	{
+		glfwMakeContextCurrent(m_Window);
+	}
+
 	void WindowsWindow::Init(const WindowProps& props)
 	{
 		m_Data.Title = props.Title;

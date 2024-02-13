@@ -15,7 +15,8 @@ namespace WinterSolstice {
 	Application::Application(const std::string& name)
 	{
 		s_Instance = this;
-		MainThread = new Himeko::BaseThread(false);
+		_RenderThread = new Himeko::SynchronizeThread(false);
+		_TaskThread = new Himeko::SynchronizeThread();
 
 		m_Window = std::unique_ptr<Window>(Window::Create(WindowProps(name)));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
@@ -27,55 +28,58 @@ namespace WinterSolstice {
 
 	}
 	Application::~Application() {
-		if (MainThread)
-			delete MainThread;
+		if (_TaskThread)
+			delete _TaskThread;
+		if (_RenderThread)
+			delete _RenderThread;
 	}
 
 	void Application::Run() {
-		auto Update = [=, this]()
+		auto _Update = [this]()
 			{
-				if (!m_Running)
-				{
-					this->MainThread->AddTask([this]() {this->MainThread->kill(); });
-					return;
-				}
-				//std::lock_guard<std::mutex> lock(MainMutex);
-				float time = (float)glfwGetTime();
+			};
+		auto _Task_Begin = [this]() {
+			_TaskThread->AddTask([this]() {
+				float time = _RenderThread->AnsycTask([this]()->float {return (float)glfwGetTime(); }).get();
 				Kiana::Timestep timestep = time - m_LastFrameTime;
 				this->m_LastFrameTime = time;
-
 				if (!this->m_Minimized)
 				{
-#ifdef MoreAndMore
-					this->MainThread->AddTask([this, timestep]() {
-						for (Layer* layer : this->m_LayerStack)
-							WaitWokers.emplace(
-								std::move(
-									this->GetThreadPool().AnsycTask([layer, timestep, this]()->int {
-										layer->OnUpdate(timestep);
-										return 1;
-										})
-								));
-						});
-					this->MainThread->AddTask([this, timestep]()
-						{
-							// 在这里等待所有异步任务完成
-							while (!WaitWokers.empty()) {
-								WaitWokers.front().get();
-								WaitWokers.pop();
-							}
-						});
-#else // MoreAndMore
-					this->MainThread->AddTask([this, timestep]() {
-						for (Layer* layer : this->m_LayerStack)
-							layer->OnUpdate(timestep);
-					});
-#endif
-					//for (Layer* layer : this->m_LayerStack)
-						//this->MainThread->AddTask([layer, timestep, this]()->int {layer->OnUpdate(timestep); return 1; });
-					//this->MainThread->AddTask([this]() {Bronya::Renderer::Execute(); });
+					for (Layer* layer : this->m_LayerStack)
+						//_TaskThread->AddTask([this, layer, timestep]() {layer->OnUpdate(timestep); });
+						layer->OnUpdate(timestep);
+				}
+				});
+			};
+//#define DEBUG
+		//启动任务线程
+		_TaskThread->FinalTaskBegin([this]() {
+#ifdef DEBUG
+			Kiana_CORE_INFO("_RenderThread SetExecute True"); 
+#endif // DEBUG
+			_RenderThread->FrameBegin(); 
+			//_RenderThread->AddTask([this]() {_RenderThread->SetExecute(true); });
+			_RenderThread->SetExecute(true);
+			});
+		//帧同步线程
+		_TaskThread->FinalTaskBegin(_Task_Begin);
 
-					this->MainThread->AddTask([this, timestep]() {
+		_TaskThread->FinalTaskEnd([this]() 
+			{
+				_RenderThread->AddTask([this]() 
+					{ 
+						_RenderThread->SetExecute(false); 
+						//_RenderThread->ReleaseOne();
+					}); 
+			});
+
+		//渲染之前的准备
+
+		_RenderThread->FinalTaskEnd([this]()
+			{
+				if (!this->m_Minimized)
+				{
+					this->_RenderThread->AddTask([this]() {
 						this->m_ImGuiLayer->Begin();
 
 						for (Layer* layer : this->m_LayerStack)
@@ -83,17 +87,27 @@ namespace WinterSolstice {
 
 						this->m_ImGuiLayer->End();
 						});
-					//this->MainThread->AddTask([this]() {this->m_ImGuiLayer->Begin(); });
-
-					//for (Layer* layer : this->m_LayerStack)
-						//this->MainThread->AddTask([layer, timestep, this]() {layer->OnImGuiRender(); });
-
-					//this->MainThread->AddTask([this]() {this->m_ImGuiLayer->End(); });
 				}
-				this->MainThread->AddTask([this]() {this->m_Window->OnUpdate(); });
-			};
-		MainThread->AddTask(Update, Loop);
-		MainThread->Worker();
+			});
+		//更新窗口
+		_RenderThread->FinalTaskEnd([this]()
+			{
+				this->m_Window->OnUpdate();
+				if (!m_Running)
+				{
+					this->_TaskThread->Kill();
+					this->_RenderThread->Kill();
+				}
+				else {
+#ifdef DEBUG
+					Kiana_CORE_INFO("_TaskThread FrameBegin");
+#endif
+					_TaskThread->FrameBegin();
+				}
+			});
+		//需要事先激活一个线程
+		_TaskThread->FrameBegin();
+		_RenderThread->Run();
 #if 0
 		while (m_Running)
 		{
@@ -116,10 +130,10 @@ namespace WinterSolstice {
 			}
 
 			m_Window->OnUpdate();
-		}
-#endif // 0
-		//MainThreadPool->MainThreadWake();
 	}
+#endif // 0
+		//_RenderThreadPool->_RenderThreadWake();
+}
 	void  Application::OnEvent(KnowTreasure::Event& e)
 	{
 		KnowTreasure::EventDispatcher dispatcher(e);
@@ -132,7 +146,7 @@ namespace WinterSolstice {
 				break;
 			(*it)->OnEvent(e);
 		}
-		}
+	}
 	void Application::PushLayer(Layer* layer)
 	{
 		m_LayerStack.PushLayer(layer);
@@ -163,4 +177,4 @@ namespace WinterSolstice {
 		Bronya::Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 		return false;
 	}
-	}
+}

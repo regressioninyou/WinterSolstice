@@ -120,10 +120,10 @@ namespace WinterSolstice {
 		{
 			Kiana::Timer timer;
 			std::string vsSource, fsSource;
-			if (vs.size() < 256 &&
-				fs.size() < 256 &&
-				vs.find(".glsl") != -1 &&
-				fs.find(".glsl") != -1)
+			if (vs.size() < 256 && 
+				fs.size() < 256 && 
+				(vs.find(".glsl") != -1 && fs.find(".glsl") != -1) || 
+				(vs.find(".vs") != -1 && fs.find(".fs") != -1))
 			{
 				vsSource = ReadFile(vs);
 				fsSource = ReadFile(fs);

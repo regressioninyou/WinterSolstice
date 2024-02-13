@@ -45,6 +45,7 @@ namespace WinterSolstice {
 			Ref<Shader> Load(const std::string& name, const std::string& vs, const std::string& fs);
 
 			Ref<Shader> Get(const std::string& name);
+			Ref<Shader> GetAs(const std::string& name);
 
 			bool Exists(const std::string& name) const;
 

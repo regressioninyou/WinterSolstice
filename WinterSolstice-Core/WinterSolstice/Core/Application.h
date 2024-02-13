@@ -34,8 +34,8 @@ namespace WinterSolstice {
 		inline Window& GetWindow() { return *m_Window; };
 		inline glm::vec2 GetWindowPos() { return m_Window->GetWindowPos(); }
 
-		Himeko::BaseThread*& GetMainThread() { return MainThread; }
-		Himeko::BaseThread*& GetRendererThread() { return RendererThread; }
+		Himeko::SynchronizeThread*& RenderThread() { return _RenderThread; }
+		Himeko::SynchronizeThread*& TaskThread() { return _TaskThread; }
 
 		static Himeko::ThreadPool& GetThreadPool() { return thp; }
 		static std::pmr::unsynchronized_pool_resource Memory_Pool;
@@ -43,8 +43,8 @@ namespace WinterSolstice {
 		bool OnWindowClose(KnowTreasure::WindowCloseEvent& e);
 		bool OnWindowResize(KnowTreasure::WindowResizeEvent& e);
 	private:
-		Himeko::BaseThread* MainThread;
-		Himeko::BaseThread* RendererThread;
+		Himeko::SynchronizeThread* _RenderThread;
+		Himeko::SynchronizeThread* _TaskThread;
 		static Himeko::ThreadPool thp;
 		Scope<Window> m_Window;
 		Hua::ImGuiLayer* m_ImGuiLayer;

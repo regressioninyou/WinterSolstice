@@ -19,10 +19,20 @@ namespace WinterSolstice {
 		void OpenSceneAs();
 		void SaveSceneAs();
 		void LoadModel();
+		void AwaitSwapFramerBufferAndInitScene(Ref<Bronya::Framebuffer> from,Ref<Bronya::Framebuffer> to,std::function<bool()> callback);
 		void ObjMapList(Ref<Object>& objs, Raiden::Entity& parent);
 	private:
 		//OrthographicCameraController m_CameraController;
 		Ref<Bronya::VertexArray> m_SquareVA;
+		Ref<Bronya::Shader> m_SquareVAShader;
+
+		std::vector<glm::vec3> lightPositions;
+		std::vector<glm::vec3> lightColors;
+
+		ImVec2  WindowSize;
+		ImVec2  WindowPos;
+
+		Ref<Bronya::Framebuffer> m_Gbuffer;
 		Ref<Bronya::Framebuffer> m_Framebuffer;
 
 		Ref<Bronya::Texture2D> m_Texture2D;

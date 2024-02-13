@@ -9,34 +9,31 @@ layout(location = 6) in vec4 aWeights;
 
 const int MAX_BONES = 200;
 
+out vec3 FragPos;
+out vec2 TexCoords;
+out vec3 Normal;
+
 uniform mat4 uProjection;
 uniform mat4 uView;
 uniform mat4 uModel;
 uniform mat4 uViewProjection;
-out vec3 vPosition;
-out vec3 vNormal;
-out vec2 vTexcoord;
-flat out ivec4 vBoneIDs;
-out vec4 vWeights;
-flat out mat4 vBoneTransform;
 uniform mat4 gBones[MAX_BONES];
 
-void main (){
+void main()
+{
     mat4 BoneTransform = gBones[aBoneIDs[0]] * aWeights[0];
     BoneTransform     += gBones[aBoneIDs[1]] * aWeights[1];
     BoneTransform     += gBones[aBoneIDs[2]] * aWeights[2];
     BoneTransform     += gBones[aBoneIDs[3]] * aWeights[3];
 
-	vBoneTransform = BoneTransform;
-	vTexcoord = aTexcoord;
-	vec3 Position = normalize(aPosition);
-	vPosition = Position;
-	vNormal = aNormal;
-	vBoneIDs = aBoneIDs;
-	vWeights = aWeights;
+    vec4 worldPos = uModel * vec4(aPosition, 1.0);
+    FragPos = worldPos.xyz; 
+    TexCoords = aTexcoord;
+    
+    mat3 normalMatrix = transpose(inverse(mat3(uModel)));
+    Normal = normalMatrix * aNormal;
 
-	mat4 MVP =  uProjection * uView * uModel;
-    vec4 PosL = BoneTransform * vec4(aPosition, 1.0);
-	if(PosL.w == 0.0) PosL =  vec4(aPosition, 1.0);
-	gl_Position =  uViewProjection * uModel * PosL; 
+  //  vec4 PosL = BoneTransform * worldPos;
+//	if(PosL.w == 0.0) PosL =  worldPos;
+	gl_Position =  uViewProjection *  worldPos; 
 }

@@ -4,6 +4,7 @@
 #include <future>
 #include <functional>
 #include <queue>
+#include <shared_mutex>
 #include <mutex>
 #include <atomic>
 #include <semaphore>
@@ -40,12 +41,22 @@ namespace WinterSolstice {
 				AddTaskTop(ortho);
 			}
 			void AddTask(const Himeko::WokerInfo<void()>& info) {
-				std::unique_lock<std::mutex> lock(mutexx);
+				if (std::this_thread::get_id() == id)
+				{
+					try {
+						info.WokerFunction();
+					}
+					catch (...) {
+						Kiana_CORE_WARN("BaseThread::AddTask: Caught exception in worker thread {0}", info.FunctionInfo);
+					}
+					return;
+				}
+				std::lock_guard<std::recursive_mutex> lock(mutexx);
 				Woker_Queue.push_back(info);
 				Wake();
 			}
 			void AddTaskTop(const Himeko::WokerInfo<void()>& info) {
-				std::unique_lock<std::mutex> lock(mutexx);
+				std::lock_guard<std::recursive_mutex> lock(mutexx);
 				Woker_Queue.push_front(info);
 				Wake();
 			}
@@ -125,14 +136,17 @@ namespace WinterSolstice {
 				auto boundTask = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
 
 				{
-					if (occupy == true) {
-						(*boundTask)();
-						return boundTask->get_future();
-					}
-					std::unique_lock<std::mutex> lock(mutexx);
 					Himeko::WokerInfo<void()> info;
 					info.WokerFunction = [this, boundTask]() {(*boundTask)(); };
 					info.ExecuteCount = 1;
+					if (occupy == true) {
+						info.WokerFunction();
+						std::lock_guard<std::recursive_mutex> lock(mutexx);
+						info.WokerFunction = [boundTask]() {};
+						Wake();
+						return std::move(boundTask->get_future());
+					}
+					std::lock_guard<std::recursive_mutex> lock(mutexx);
 					Woker_Queue.push_back(info);
 					//AnsycTaskInfo()
 					//worker_que.push_back(std::pair{ 1,[this, boundTask]() {(*boundTask)(); } });
@@ -147,7 +161,7 @@ namespace WinterSolstice {
 				auto boundTask = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
 
 				{
-					std::unique_lock<std::mutex> lock(mutexx);
+					std::lock_guard<std::recursive_mutex> lock(mutexx);
 					Himeko::WokerInfo<void()> info;
 					info.WokerFunction = [this, boundTask]() {(*boundTask)(); };
 					info.ExecuteCount = 1;
@@ -186,8 +200,11 @@ namespace WinterSolstice {
 					await_relese.acquire();
 				return Woker_Queue.empty();
 			}
+			bool IsCurrentThread() {
+				return id == std::this_thread::get_id();
+			}
 			uint32_t GetWokerCount() {
-				std::unique_lock<std::mutex> lock(mutexx);
+				std::lock_guard<std::recursive_mutex> lock(mutexx);
 				return Woker_Queue.size();
 			}
 			void Worker() {
@@ -197,7 +214,7 @@ namespace WinterSolstice {
 					WokerInfo<void()> info = { []() {} ,"Defult Function Info",1 };
 					woker_ss.acquire();
 					{
-						std::unique_lock<std::mutex> lock(mutexx);
+						std::lock_guard<std::recursive_mutex> lock(mutexx);
 						if (!Woker_Queue.empty())
 						{
 							occupy = true;
@@ -219,7 +236,7 @@ namespace WinterSolstice {
 					}
 					{
 						if (alive && (info.ExecuteCount == Loop || --info.ExecuteCount > 0)) {
-							std::unique_lock<std::mutex> lock(mutexx);
+							std::lock_guard<std::recursive_mutex> lock(mutexx);
 							//worker_que.push_back(fn);
 							Woker_Queue.push_back(info);
 							Wake();
@@ -228,7 +245,8 @@ namespace WinterSolstice {
 					occupy = false;
 					//if (worker_que.empty()) woker_end = true;
 					if (!alive && Woker_Queue.empty()) {
-						if (!ansyc) await_relese.release();
+						if (!ansyc)
+							await_relese.release();
 						return;
 					}
 				}
@@ -276,9 +294,10 @@ namespace WinterSolstice {
 			std::deque<WokerInfo<void()>> Woker_Queue;
 			std::counting_semaphore<1> await_relese{ 0 };
 			std::counting_semaphore<64> woker_ss{ 0 };
-			std::mutex mutexx;
+			std::recursive_mutex mutexx;
 			std::counting_semaphore<1> WokerState{ 1 };
 		};
+
 		class ThreadPool {
 		public:
 			ThreadPool(short numThreads) :nowThread(numThreads) {
@@ -316,7 +335,7 @@ namespace WinterSolstice {
 
 				auto worker_index = this->round_robin.fetch_add(1) % this->nowThread;
 
-				return worker_pool[worker_index]->AnsycTask<F, Args...>(std::forward<F>(f), std::forward<Args>(args)...);
+				return std::forward<std::future<decltype(f(args...))>>(worker_pool[worker_index]->AnsycTask<F, Args...>(std::forward<F>(f), std::forward<Args>(args)...));
 #if  0
 				std::pair<uint32_t, BaseThread*> pair = { worker_pool[0]->GetWokerCount(),worker_pool[0] };
 				for (size_t i = 1; i < worker_pool.size(); i++) {
@@ -366,6 +385,234 @@ namespace WinterSolstice {
 			std::vector<BaseThread*> worker_pool;
 			short maxThread = 16;
 			short nowThread;
+		};
+
+		class SynchronizeThread {
+		public:
+			SynchronizeThread(bool detach = true) :alive(true), Sychronize(detach)
+			{
+				if (detach)
+					std::thread(&SynchronizeThread::Run, this).detach();
+			}
+			~SynchronizeThread() {}
+
+			void Begin()
+			{
+				for (auto begin : Final_Woker_Begin) {
+					//Queue_Woker.push_back(begin);
+					begin.WokerFunction();
+				}
+				start = true;
+			}
+			void End()
+			{
+				for (auto end : Final_Woker_End)
+					//Queue_Woker.push_back(end);
+					end.WokerFunction();
+				start = false;
+			}
+
+			void AddTask(std::function<void()> task) {
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = task;
+				AddTaskInfo(info);
+			}
+			void AddTaskInfo(Himeko::WokerInfo<void()> info) {
+				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+				Queue_Woker.push_back(info);
+				ReleaseOne();
+			}
+			void AddTaskTop(std::function<void()> task) {
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = task;
+				AddTaskInfo(info);
+			}
+			void AddTaskTopInfo(Himeko::WokerInfo<void()> info) {
+				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+				Queue_Woker.push_front(info);
+				ReleaseOne();
+			}
+			void AddTaskAwait(std::function<void()> task) {
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = task;
+				AddTaskAwaitInfo(info);
+			}
+			void AddTaskAwaitInfo(const Himeko::WokerInfo<void()>& info) {
+				if (std::this_thread::get_id() == this->id)
+				{
+					try
+					{
+						info.WokerFunction();
+					}
+					catch (const std::exception& ex)
+					{
+						auto error = ex.what();
+						Kiana_CORE_ERROR(error);
+					}
+					return;
+				}
+				std::counting_semaphore<1> l{ 0 };
+
+				AddTask([&]()
+					{
+						info.WokerFunction();
+						l.release();
+					});
+				l.acquire();
+			}
+			void AddTaskAwaitTop(std::function<void()> task) {
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = task;
+				AddTaskAwaitTopInfo(info);
+			}
+			void AddTaskAwaitTopInfo(const Himeko::WokerInfo<void()>& info) {
+				if (std::this_thread::get_id() == this->id)
+				{
+					try
+					{
+						info.WokerFunction();
+					}
+					catch (const std::exception& ex)
+					{
+						auto error = ex.what();
+						Kiana_CORE_ERROR(error);
+					}
+					return;
+				}
+				std::counting_semaphore<1> l{ 0 };
+
+				AddTaskTop([&]()
+					{
+						info.WokerFunction();
+						l.release();
+					});
+				l.acquire();
+			}
+
+			template <class F, class... Args>
+			auto AnsycTask(F&& f, Args&&... args) -> std::future<decltype(f(args...))> {
+				using return_type = decltype(f(std::forward<Args>(args)...));
+
+				// 创建一个包含任务函数和参数的 Himeko::WokerInfo 对象
+				Himeko::WokerInfo<return_type()> info;
+				info.WokerFunction = std::forward<F>(f);
+
+				// 调用 AnsycTaskInfo 函数，并将任务信息和参数传递给它
+				return AnsycTaskInfo(info, std::forward<Args>(args)...);
+			}
+
+			template <class F, class... Args>
+			auto AnsycTaskInfo(const Himeko::WokerInfo<F>& info, Args&&... args) -> std::future<decltype(info.WokerFunction(std::forward<Args>(args)...))> {
+				using return_type = decltype(info.WokerFunction(std::forward<Args>(args)...));
+
+				// 创建一个包装任务，将任务函数和参数绑定
+				auto boundTask = std::make_shared<std::packaged_task<return_type()>>(std::bind(info.WokerFunction, std::forward<Args>(args)...));
+
+				{
+					// 加锁保护共享资源
+					std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+
+					// 将绑定的任务添加到任务队列中
+					Himeko::WokerInfo<void()> ortho;
+					ortho.WokerFunction = [this, boundTask]() { (*boundTask)(); };
+					ortho.ExecuteCount = info.ExecuteCount;
+					ortho.FunctionInfo = info.FunctionInfo;
+					Queue_Woker.push_back(ortho);
+
+					// 释放一个信号量，表示有新的任务加入队列
+					ReleaseOne();
+				}
+
+				// 返回与任务关联的 std::future 对象
+				return boundTask->get_future();
+			}
+
+			void ReleaseOne() {
+				woker.release();
+			}
+			void FinalTaskBegin(std::function<void()> task)
+			{
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = task;
+				Final_Woker_Begin.push_back(info);
+			}
+			void FinalTaskEnd(std::function<void()> task)
+			{
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = task;
+				Final_Woker_End.push_back(info);
+			}
+			void FrameBegin() {
+				frame.release();
+			}
+			//bool isAlive() {};
+			void Kill() {
+				alive = false;
+				SetExecute(false);
+				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+				std::vector<WokerInfo<void()>> kill;
+				for (auto& que : Queue_Woker) {
+					kill.push_back(que);
+				}
+				Queue_Woker.clear();
+				for (auto& que : kill) {
+					que.WokerFunction();
+				}
+			}
+			void SetExecute(bool set) {
+				std::shared_lock<std::shared_mutex> lock(Execute_mutex);
+				Execute = set;
+			}
+			bool GetExecute() {
+				std::shared_lock<std::shared_mutex> lock(Execute_mutex);
+				return Execute;
+			}
+			
+			void ClearQueue_Woker() {
+				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+				Queue_Woker.clear();
+			}
+			void Run()
+			{
+				id = std::this_thread::get_id();
+				while (alive)
+				{
+					frame.acquire();
+					Begin();
+					while (!Queue_Woker.empty() || GetExecute()) {
+						Himeko::WokerInfo<void()> info;
+						info.WokerFunction = []() {};
+						woker.acquire();
+						{
+							std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+							info = std::move(Queue_Woker.back());
+							Queue_Woker.pop_back();
+						}
+						try
+						{
+							info.WokerFunction();
+						}
+						catch (const std::exception&)
+						{
+							Kiana_CORE_WARN("Runtime Error:{0}", info.FunctionInfo);
+						}
+					}
+					End();
+				}
+			}
+		private:
+			bool alive;
+			bool Sychronize = false;
+			bool start = false;
+			bool Execute = false;
+			std::thread::id id;
+			std::counting_semaphore<4> frame{ 0 };
+			std::counting_semaphore<64> woker{ 0 };
+			std::shared_mutex Execute_mutex;
+			std::recursive_mutex Queue_mutex;
+			std::deque<WokerInfo<void()>> Queue_Woker;
+			std::vector<WokerInfo<void()>> Final_Woker_Begin;
+			std::vector<WokerInfo<void()>> Final_Woker_End;
 		};
 	}
 }

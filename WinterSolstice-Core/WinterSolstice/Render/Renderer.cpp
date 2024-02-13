@@ -27,6 +27,11 @@ namespace WinterSolstice {
 		{
 			Renderer2D::Shutdown();
 		}
+		void Renderer::ResetStats()
+		{
+			RenderQueue_opacity.clear();
+			RenderQueue_Translucent.clear();
+		}
 		void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 		{
 			RenderCommand::SetViewport(0, 0, width, height);
@@ -41,8 +46,6 @@ namespace WinterSolstice {
 		}
 		void Renderer::BeginScene(const Rossweisse::EditorCamera& camera)
 		{
-			RenderQueue_opacity.clear();
-			RenderQueue_Translucent.clear();
 			m_SceneData->ViewProjectionMatrix = camera.GetViewProjection();
 			m_SceneData->ViewMatrix = camera.GetViewMatrix();
 			m_SceneData->ProjectionMatrix = camera.GetProjection();
@@ -82,13 +85,12 @@ namespace WinterSolstice {
 		//result1.get();
 		//result2.get();
 		}
-		void Renderer::Execute()
+		void Renderer::Flush()
 		{
 			for (auto& que : RenderQueue_opacity)
 			{
 				que.task();
 			}
-			Renderer2D::Flush();
 			for (auto& que : RenderQueue_Translucent)
 			{
 				que.task();

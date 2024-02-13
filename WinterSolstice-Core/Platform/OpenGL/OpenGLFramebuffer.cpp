@@ -42,6 +42,35 @@ namespace WinterSolstice {
 				}
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, TextureTarget(multisampled), id, 0);
+				// 检查帧缓冲是否完整
+				if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+					std::cerr << "Error: Framebuffer is not complete!" << std::endl;
+				}
+			}
+
+			static void AttachIntTexture(uint32_t id, int samples, GLenum internalFormat, GLenum format, uint32_t width, uint32_t height, int index)
+			{
+				bool multisampled = samples > 1;
+				if (multisampled)
+				{
+					glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalFormat, width, height, GL_FALSE);
+				}
+				else
+				{
+					glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_INT, nullptr);
+
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				}
+
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, TextureTarget(multisampled), id, 0);
+				// 检查帧缓冲是否完整
+				if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+					std::cerr << "Error: Framebuffer is not complete!" << std::endl;
+				}
 			}
 
 			static void AttachDepthTexture(uint32_t id, int samples, GLenum format, GLenum attachmentType, uint32_t width, uint32_t height)
@@ -63,6 +92,10 @@ namespace WinterSolstice {
 				}
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, TextureTarget(multisampled), id, 0);
+				// 检查帧缓冲是否完整
+				if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+					std::cerr << "Error: Framebuffer is not complete!" << std::endl;
+				}
 			}
 
 			static bool IsDepthFormat(FramebufferTextureFormat format)
@@ -75,11 +108,13 @@ namespace WinterSolstice {
 				return false;
 			}
 
-			static GLenum HazelFBTextureFormatToGL(FramebufferTextureFormat format)
+			static GLenum FBTextureFormatToGL(FramebufferTextureFormat format)
 			{
 				switch (format)
 				{
+				case FramebufferTextureFormat::RGBA: return GL_RGBA;
 				case FramebufferTextureFormat::RGBA8:       return GL_RGBA8;
+				case FramebufferTextureFormat::RGBA16F: return GL_RGBA16F;
 				case FramebufferTextureFormat::RED_INTEGER: return GL_RED_INTEGER;
 				}
 
@@ -138,8 +173,14 @@ namespace WinterSolstice {
 					Utils::BindTexture(multisample, m_ColorAttachments[i]);
 					switch (m_ColorAttachmentSpecifications[i].TextureFormat)
 					{
+					case FramebufferTextureFormat::RGBA:
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
+						break;
 					case FramebufferTextureFormat::RGBA8:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
+						break;
+					case FramebufferTextureFormat::RGBA16F:
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA16F, GL_RGBA, m_Specification.Width, m_Specification.Height, i);
 						break;
 					case FramebufferTextureFormat::RED_INTEGER:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height, i);
@@ -165,13 +206,17 @@ namespace WinterSolstice {
 				Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 12);
 				//glDrawBuffers(m_ColorAttachments.size(), m_ColorAttachments.data());
 				uint16_t AttachmentsSize = m_ColorAttachments.size();
-				GLuint* colorAttachments = (GLuint*)malloc(sizeof(GLuint) * AttachmentsSize );
+				GLuint* colorAttachments = (GLuint*)malloc(sizeof(GLuint) * AttachmentsSize);
 				//std::array<uint32_t, size> = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 				for (uint32_t i = 0; i < AttachmentsSize; ++i) {
 					colorAttachments[i] = GL_COLOR_ATTACHMENT0 + i;
 				}
 				glDrawBuffers(m_ColorAttachments.size(), colorAttachments);
 				free(colorAttachments);
+				//glDrawBuffers(m_ColorAttachments.size(), buffers);
+
+				//Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 4);
+				//GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 				//glDrawBuffers(m_ColorAttachments.size(), buffers);
 			}
 			else if (m_ColorAttachments.empty())
@@ -226,7 +271,7 @@ namespace WinterSolstice {
 
 			auto& spec = m_ColorAttachmentSpecifications[attachmentIndex];
 			glClearTexImage(m_ColorAttachments[attachmentIndex], 0,
-				Utils::HazelFBTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
+				Utils::FBTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
 		}
 		void OpenGLFramebuffer::BindTextureID(FramebufferTextureFormat format, uint32_t slot)
 		{
@@ -235,7 +280,13 @@ namespace WinterSolstice {
 			case WinterSolstice::Bronya::FramebufferTextureFormat::None:
 				glBindTextureUnit(slot, m_DepthAttachment);
 				break;
+			case WinterSolstice::Bronya::FramebufferTextureFormat::RGBA:
+				glBindTextureUnit(slot, m_ColorAttachments[0]);
+				break;
 			case WinterSolstice::Bronya::FramebufferTextureFormat::RGBA8:
+				glBindTextureUnit(slot, m_DepthAttachment);
+				break;
+			case WinterSolstice::Bronya::FramebufferTextureFormat::RGBA16F:
 				glBindTextureUnit(slot, m_DepthAttachment);
 				break;
 			case WinterSolstice::Bronya::FramebufferTextureFormat::RED_INTEGER:
@@ -248,8 +299,49 @@ namespace WinterSolstice {
 				break;
 			}
 		}
+		void OpenGLFramebuffer::BindColorAttachments()
+		{
+			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++) {
+				glBindTextureUnit(i, m_ColorAttachments[i]);
+			}
+		}
 		void OpenGLFramebuffer::UnBindTextureID(FramebufferTextureFormat format, uint32_t slot)
 		{
+			uint32_t i = 0;
+			for (auto& id : m_ColorAttachments) {
+				glBindTextureUnit(i, 0);
+				i++;
+			}
+		}
+		uint32_t OpenGLFramebuffer::GetRendererID()
+		{
+			return m_RendererID;
+		}
+		void OpenGLFramebuffer::ToOtherFramebuffer(uint32_t slot)
+		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_RendererID);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, slot); // write to default framebuffer
+			// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+			// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+			// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+			glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height,
+				0, 0, m_Specification.Width, m_Specification.Height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+			glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height,
+				0, 0, m_Specification.Width, m_Specification.Height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+		void OpenGLFramebuffer::ToOtherFramebuffer(uint32_t slot, const FramebufferSpecification& slotFormat)
+		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_RendererID);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, slot); // write to default framebuffer
+			// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
+			// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
+			// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
+			glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height,
+				0, 0, slotFormat.Width, slotFormat.Height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+			//glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height,
+				//0, 0, slotFormat.Width, slotFormat.Height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 	}
 }
