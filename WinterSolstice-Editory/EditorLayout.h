@@ -15,6 +15,7 @@ namespace WinterSolstice {
 		virtual void OnEvent(KnowTreasure::Event& event)  override;
 	private:
 		bool OnKeyPressed(KnowTreasure::KeyPressedEvent& event);
+		bool OnMouseButtonPressed(KnowTreasure::MouseButtonPressedEvent& event);
 		void NewSceneAs();
 		void OpenSceneAs();
 		void SaveSceneAs();

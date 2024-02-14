@@ -84,6 +84,9 @@ namespace WinterSolstice {
 			virtual void ToOtherFramebuffer(uint32_t slot = 0) = 0;
 			virtual void ToOtherFramebuffer(uint32_t slot,const FramebufferSpecification& slotFormat) = 0;
 
+			virtual void BindReadBuffer(uint32_t slot) = 0;
+			virtual void BindDrawBuffer(uint32_t slot) = 0;
+
 			static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
 		};
 

@@ -203,16 +203,9 @@ namespace WinterSolstice {
 
 			if (m_ColorAttachments.size() > 1)
 			{
-				Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 12);
-				//glDrawBuffers(m_ColorAttachments.size(), m_ColorAttachments.data());
-				uint16_t AttachmentsSize = m_ColorAttachments.size();
-				GLuint* colorAttachments = (GLuint*)malloc(sizeof(GLuint) * AttachmentsSize);
-				//std::array<uint32_t, size> = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-				for (uint32_t i = 0; i < AttachmentsSize; ++i) {
-					colorAttachments[i] = GL_COLOR_ATTACHMENT0 + i;
-				}
-				glDrawBuffers(m_ColorAttachments.size(), colorAttachments);
-				free(colorAttachments);
+				Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 4);
+				GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+				glDrawBuffers(m_ColorAttachments.size(), buffers);
 				//glDrawBuffers(m_ColorAttachments.size(), buffers);
 
 				//Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 4);
@@ -317,10 +310,18 @@ namespace WinterSolstice {
 		{
 			return m_RendererID;
 		}
+		void OpenGLFramebuffer::BindReadBuffer(uint32_t slot)
+		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, slot);
+		}
+		void OpenGLFramebuffer::BindDrawBuffer(uint32_t slot)
+		{
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, slot); // write to default framebuffer
+		}
 		void OpenGLFramebuffer::ToOtherFramebuffer(uint32_t slot)
 		{
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_RendererID);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, slot); // write to default framebuffer
+			BindReadBuffer(m_RendererID);
+			BindDrawBuffer(slot);
 			// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
 			// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
 			// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
@@ -332,16 +333,14 @@ namespace WinterSolstice {
 		}
 		void OpenGLFramebuffer::ToOtherFramebuffer(uint32_t slot, const FramebufferSpecification& slotFormat)
 		{
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_RendererID);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, slot); // write to default framebuffer
+			//BindReadBuffer(m_RendererID);
+			//BindDrawBuffer(slot);
 			// blit to default framebuffer. Note that this may or may not work as the internal formats of both the FBO and default framebuffer have to match.
 			// the internal formats are implementation defined. This works on all of my systems, but if it doesn't on yours you'll likely have to write to the 		
 			// depth buffer in another shader stage (or somehow see to match the default framebuffer's internal format with the FBO's internal format).
 			glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height,
 				0, 0, slotFormat.Width, slotFormat.Height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-			//glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height,
-				//0, 0, slotFormat.Width, slotFormat.Height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 	}
 }

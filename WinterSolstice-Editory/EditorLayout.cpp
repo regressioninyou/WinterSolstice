@@ -17,10 +17,10 @@ namespace WinterSolstice {
 		m_Texture2D = Bronya::Texture2D::Create("./assets/textures/Checkerboard.png");
 		Bronya::FramebufferSpecification fbsf;
 		fbsf.Attachments = {
-			Bronya::FramebufferTextureFormat::RGBA16F,
-			Bronya::FramebufferTextureFormat::RGBA16F,
-			Bronya::FramebufferTextureFormat::RGBA8,
 			Bronya::FramebufferTextureFormat::RED_INTEGER,
+			Bronya::FramebufferTextureFormat::RGBA16F,
+			Bronya::FramebufferTextureFormat::RGBA16F,
+			Bronya::FramebufferTextureFormat::RGBA16F,
 			Bronya::FramebufferTextureFormat::Depth
 		};
 		fbsf.Width = 1600.0f;
@@ -95,14 +95,14 @@ namespace WinterSolstice {
 #define USE_IMGUI_GBUFFER true
 	void EditorLayout::OnUpdate(Kiana::Timestep ts)
 	{
-		if (Bronya::FramebufferSpecification spec = m_Gbuffer->GetSpecification();
+		if (Bronya::FramebufferSpecification spec = m_Framebuffer->GetSpecification();
 			m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f && // zero sized framebuffer is invalid
-			(spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y + 50))
+			(spec.Width != m_ViewportSize.x || spec.Height != m_ViewportSize.y))
 		{
 			Application::Get().RenderThread()->AddTaskAwait([this]()
 				{
-					m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y + 50);
-					m_Gbuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y + 50);
+					m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+					m_Gbuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 				});
 			//m_CameraController.OnResize(m_ViewportSize.x, m_ViewportSize.y);
 			editorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
@@ -121,7 +121,7 @@ namespace WinterSolstice {
 				m_Framebuffer->Bind();
 				Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
 				Bronya::RenderCommand::Clear();
-				m_Framebuffer->ClearAttachment(3, -1);
+				m_Framebuffer->ClearAttachment(0, -1);
 
 				m_ActiveScene->OnUpdateEditor(ts, editorCamera);
 				//if (m_ActiveScene->rootBone) {
@@ -144,21 +144,6 @@ namespace WinterSolstice {
 				//m_ActiveScene->OnUpdateRuntime(ts);
 				Bronya::Renderer::Flush();
 				Bronya::Renderer2D::Flush();
-				auto [mx, my] = ImGui::GetMousePos();
-				mx -= m_ViewportBound[0].x;
-				my -= m_ViewportBound[0].y;
-				glm::vec2 viewportSize = m_ViewportBound[1] - m_ViewportBound[0];
-				my = viewportSize.y - my;
-				int mouseX = (int)mx;
-				int mouseY = (int)my;
-
-				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-				{
-					int redPexile = m_Framebuffer->ReadPixel(3, mouseX, mouseY);
-					{
-						Kiana_CORE_INFO("m_Framebuffer ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
-					}
-				}
 				m_Framebuffer->Unbind();
 			};
 
@@ -184,8 +169,8 @@ namespace WinterSolstice {
 					float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
 					m_SquareVAShader->SetFloat("lights[" + std::to_string(i) + "].Radius", radius * 10.0f);
 				}
-				m_SquareVAShader->SetFloat("viewWidth", m_ViewportSize.x);
-				m_SquareVAShader->SetFloat("viewHeight", m_ViewportSize.y);
+				m_SquareVAShader->SetInt("viewWidth", m_ViewportSize.x);
+				m_SquareVAShader->SetInt("viewHeight", m_ViewportSize.y);
 				m_SquareVAShader->SetFloat3("viewPos", editorCamera.GetPosition());
 				return true;
 			};
@@ -213,21 +198,7 @@ namespace WinterSolstice {
 				}
 				Bronya::Renderer2D::EndScene();
 				Bronya::Renderer2D::Flush();
-				auto [mx, my] = ImGui::GetMousePos();
-				mx -= m_ViewportBound[0].x;
-				my -= m_ViewportBound[0].y;
-				glm::vec2 viewportSize = m_ViewportBound[1] - m_ViewportBound[0];
-				my = viewportSize.y - my;
-				int mouseX = (int)mx;
-				int mouseY = (int)my;
 
-				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-				{
-					int redPexile = m_Gbuffer->ReadPixel(1, mouseX, mouseY);
-					{
-						Kiana_CORE_INFO("m_Gbuffer ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
-					}
-				}
 				m_Gbuffer->Unbind();
 			};
 		Application::Get().RenderThread()->AddTaskAwait(SubScreen);
@@ -333,7 +304,7 @@ namespace WinterSolstice {
 
 			m_ViewportFocus = ImGui::IsWindowFocused();
 			m_ViewportHovers = ImGui::IsWindowHovered();
-			Application::Get().GetImGuiLayer()->SetBlockFocosEvents(!m_ViewportFocus || !m_ViewportHovers);
+			Application::Get().GetImGuiLayer()->SetBlockFocosEvents(!m_ViewportHovers);
 
 			uint32_t renderID = m_Gbuffer->GetColorAttachmentRendererID();
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -367,7 +338,7 @@ namespace WinterSolstice {
 		{
 			ImGui::Begin("GBufferPosition");
 
-			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID();
+			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(1);
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
 			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
@@ -379,7 +350,7 @@ namespace WinterSolstice {
 		{
 			ImGui::Begin("GBufferNormal");
 
-			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(1);
+			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(2);
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
 			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
@@ -390,18 +361,6 @@ namespace WinterSolstice {
 		}
 		{
 			ImGui::Begin("GBufferAlbedo");
-
-			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(2);
-			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
-			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
-
-
-			ImGui::End();
-		}
-		if (1) {
-			ImGui::Begin("GBufferEntity");
 
 			uint32_t renderID = m_Framebuffer->GetColorAttachmentRendererID(3);
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -426,6 +385,7 @@ namespace WinterSolstice {
 
 		KnowTreasure::EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<KnowTreasure::KeyPressedEvent>(BIND_EVENT_FN(EditorLayout::OnKeyPressed));
+		dispatcher.Dispatch<KnowTreasure::MouseButtonPressedEvent>(BIND_EVENT_FN(EditorLayout::OnMouseButtonPressed));
 	}
 
 	bool EditorLayout::OnKeyPressed(KnowTreasure::KeyPressedEvent& event)
@@ -456,6 +416,42 @@ namespace WinterSolstice {
 		}
 		}
 		return true;
+	}
+
+	bool EditorLayout::OnMouseButtonPressed(KnowTreasure::MouseButtonPressedEvent& event)
+	{
+		if (event.GetMouseButton() == Mouse::ButtonLeft)
+		{
+			if (m_ViewportHovers && !Input::IsKeyPressed(Key::LeftAlt)) {
+				Application::Get().TaskThread()->AddTask([this]()
+					{
+						auto [mx, my] = ImGui::GetMousePos();
+						mx -= m_ViewportBound[0].x;
+						my -= m_ViewportBound[0].y;
+						glm::vec2 viewportSize = m_ViewportBound[1] - m_ViewportBound[0];
+						my = viewportSize.y - my;
+						int mouseX = (int)mx;
+						int mouseY = (int)my;
+
+						if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+						{
+							Application::Get().RenderThread()->AddTask([this, mouseY, mouseX]()
+								{
+									m_Gbuffer->Bind();
+									int redPexile = m_Gbuffer->ReadPixel(1, mouseX, mouseY);
+									{
+										Kiana_CORE_INFO("to ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
+									}
+									m_Gbuffer->Unbind();
+									if (redPexile > -1) {
+										m_Hierarchy.SetSelectedEntity(Raiden::Entity((entt::entity)redPexile, m_ActiveScene.get()));
+									}
+								});
+						}
+					});
+			}
+		}
+		return false;
 	}
 
 	void EditorLayout::NewSceneAs()
@@ -549,39 +545,17 @@ namespace WinterSolstice {
 	{
 		Application::Get().RenderThread()->AddTaskAwait([this, from, to, callback]()
 			{
-				to->Bind();
+				to->BindDrawBuffer(to->GetRendererID());
 				Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
 				Bronya::RenderCommand::Clear();
 				to->ClearAttachment(1, -1);
-				auto [mx, my] = ImGui::GetMousePos();
-				mx -= m_ViewportBound[0].x;
-				my -= m_ViewportBound[0].y;
-				glm::vec2 viewportSize = m_ViewportBound[1] - m_ViewportBound[0];
-				my = viewportSize.y - my;
-				int mouseX = (int)mx;
-				int mouseY = (int)my;
-
-				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-				{
-					int redPexile = to->ReadPixel(1, mouseX, mouseY);
-					{
-						Kiana_CORE_INFO("to ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
-					}
-				}
 				Bronya::Renderer::ResetStats();
 				Bronya::Renderer::BeginScene(editorCamera);
 
 				Bronya::Renderer::SubmitQue(m_SquareVA, m_SquareVAShader, std::move(callback), glm::vec3(0.0f), true);
 				Bronya::Renderer::EndScene();
 				Bronya::Renderer::Flush();
-
-				if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-				{
-					int redPexile = to->ReadPixel(1, mouseX, mouseY);
-					{
-						Kiana_CORE_INFO("to ReadPexile {0} , X: {1} ; Y:{2} ", redPexile, mouseX, mouseY);
-					}
-				}
+				from->BindReadBuffer(from->GetRendererID());
 				from->ToOtherFramebuffer(to->GetRendererID(), to->GetSpecification());
 			});
 	}

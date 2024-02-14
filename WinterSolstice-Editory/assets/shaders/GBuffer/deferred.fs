@@ -4,10 +4,10 @@ layout(location = 1) out int v_Entity;
 
 in vec2 TexCoords;
 
-layout (binding = 0)uniform sampler2D gPosition;
-layout (binding = 1)uniform sampler2D gNormal;
-layout (binding = 2)uniform sampler2D gAlbedoSpec;
-layout (binding = 3)uniform sampler2D gEntity;
+layout (binding = 0)uniform isampler2D gEntity;
+layout (binding = 1)uniform sampler2D gPosition;
+layout (binding = 2)uniform sampler2D gNormal;
+layout (binding = 3)uniform sampler2D gAlbedoSpec;  
 
 struct Light {
     vec3 Position;
@@ -19,8 +19,8 @@ struct Light {
 };
 const int NR_LIGHTS = 32;
 uniform Light lights[NR_LIGHTS];
-uniform float viewWidth;
-uniform float viewHeight;
+uniform int viewWidth;
+uniform int viewHeight;
 uniform vec3 viewPos;
 
 void main()
@@ -28,8 +28,8 @@ void main()
     float opacity = texture(gNormal, TexCoords).a;
     if(opacity == 0.0) discard;     
     ivec2 texelCoord = ivec2(int(viewWidth * TexCoords.x), int(viewHeight * TexCoords.y));
-    vec4 texelValue = texelFetch(gEntity, texelCoord, 0);
-    v_Entity = int(texelValue.a);
+    ivec4 texelValue = texelFetch(gEntity, texelCoord, 0);
+    v_Entity = texelValue.r;
    // v_Entity = texelCoord.y; 
     // retrieve data from gbuffer
     vec3 FragPos = texture(gPosition, TexCoords).rgb;

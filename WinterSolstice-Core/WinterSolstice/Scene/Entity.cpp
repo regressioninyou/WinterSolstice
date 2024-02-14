@@ -8,6 +8,11 @@ namespace WinterSolstice {
 		{
 		}
 
+		Entity::Entity(uint32_t handle, Scene* scene)
+			: m_EntityHandle((entt::entity)handle), m_Scene(scene)
+		{
+		}
+
 		Entity Entity::AppendChild(const std::string& name) {
 			auto& child = AddComponent<NodeComponent>();
 			auto at = m_Scene->ListAt(m_EntityHandle);

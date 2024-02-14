@@ -13,9 +13,10 @@ namespace WinterSolstice {
 		SceneHierarchyPanel(const Ref<Raiden::Scene>& scene);
 		
 		void SetContext(const Ref<Raiden::Scene>& scene);
+		void OnImGuiRender();
 
 		Raiden::Entity SeletedEntity() { return m_SelectionContext; };
-		void OnImGuiRender();
+		void SetSelectedEntity(Raiden::Entity entity);
 	private:
 		void DrawEntityNode(Raiden::Entity entity,std::vector<Ref<Raiden::Scene::ListNode>>::iterator& it);
 		void DrawComponents(Raiden::Entity entity);

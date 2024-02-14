@@ -35,45 +35,35 @@ namespace WinterSolstice {
 	}
 
 	void Application::Run() {
-		auto _Update = [this]()
-			{
-			};
-		auto _Task_Begin = [this]() {
-			_TaskThread->AddTask([this]() {
-				float time = _RenderThread->AnsycTask([this]()->float {return (float)glfwGetTime(); }).get();
-				Kiana::Timestep timestep = time - m_LastFrameTime;
-				this->m_LastFrameTime = time;
-				if (!this->m_Minimized)
-				{
-					for (Layer* layer : this->m_LayerStack)
-						//_TaskThread->AddTask([this, layer, timestep]() {layer->OnUpdate(timestep); });
-						layer->OnUpdate(timestep);
-				}
-				});
-			};
-//#define DEBUG
-		//启动任务线程
+		//#define DEBUG
+				//启动任务线程
 		_TaskThread->FinalTaskBegin([this]() {
 #ifdef DEBUG
-			Kiana_CORE_INFO("_RenderThread SetExecute True"); 
+			Kiana_CORE_INFO("_RenderThread SetExecute True");
 #endif // DEBUG
-			_RenderThread->FrameBegin(); 
+			_RenderThread->AddTask([this]() {_RenderThread->SetExecute(true); });
+			_RenderThread->FrameBegin();
 			//_RenderThread->AddTask([this]() {_RenderThread->SetExecute(true); });
-			_RenderThread->SetExecute(true);
+			_TaskThread->AddTask([this]() {
+				float time = _RenderThread->AnsycTask([this]()->float {
+					return (float)glfwGetTime();
+					}).get();
+					Kiana::Timestep timestep = time - m_LastFrameTime;
+					this->m_LastFrameTime = time;
+					if (!this->m_Minimized)
+					{
+						for (Layer* layer : this->m_LayerStack)
+							//_TaskThread->AddTask([this, layer, timestep]() {layer->OnUpdate(timestep); });
+							layer->OnUpdate(timestep);
+					}
+				});
 			});
-		//帧同步线程
-		_TaskThread->FinalTaskBegin(_Task_Begin);
 
-		_TaskThread->FinalTaskEnd([this]() 
+		_TaskThread->FinalTaskEnd([this]()
 			{
-				_RenderThread->AddTask([this]() 
-					{ 
-						_RenderThread->SetExecute(false); 
-						//_RenderThread->ReleaseOne();
-					}); 
+				if (_RenderThread->GetExecute())
+					_RenderThread->AddTask([this]() {_RenderThread->SetExecute(false); });
 			});
-
-		//渲染之前的准备
 
 		_RenderThread->FinalTaskEnd([this]()
 			{
@@ -87,23 +77,41 @@ namespace WinterSolstice {
 
 						this->m_ImGuiLayer->End();
 						});
+					this->m_Window->OnUpdate();
 				}
-			});
-		//更新窗口
-		_RenderThread->FinalTaskEnd([this]()
-			{
-				this->m_Window->OnUpdate();
+				else {
+					this->m_Window->OnUpdate();
+					this->_RenderThread->SetMinimized(this->m_Minimized);
+				}
 				if (!m_Running)
 				{
 					this->_TaskThread->Kill();
 					this->_RenderThread->Kill();
 				}
 				else {
-#ifdef DEBUG
-					Kiana_CORE_INFO("_TaskThread FrameBegin");
-#endif
 					_TaskThread->FrameBegin();
 				}
+			});
+
+		_RenderThread->SetMinimizeRun([this]() {
+			//if (!_RenderThread->GetMinimized()) _TaskThread->FrameBegin();
+			//更新窗口
+			this->m_Window->OnUpdate();
+			if (!m_Running)
+			{
+				this->_TaskThread->Kill();
+				this->_RenderThread->Kill();
+			}
+			else {
+#ifdef DEBUG
+				Kiana_CORE_INFO("_TaskThread FrameBegin");
+#endif
+				_TaskThread->AddMinimizedTask([this]() {
+					_RenderThread->SetMinimized(this->m_Minimized);
+					});
+				_TaskThread->ExecuteWokerQueue();
+				if (this->m_Minimized) std::this_thread::sleep_for(std::chrono::milliseconds(16));
+			}
 			});
 		//需要事先激活一个线程
 		_TaskThread->FrameBegin();
@@ -174,7 +182,9 @@ namespace WinterSolstice {
 			return false;
 		}
 		m_Minimized = false;
-		Bronya::Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+		_RenderThread->AddTask([this, e]() {
+			Bronya::Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+			});
 		return false;
 	}
 }

@@ -78,6 +78,10 @@ namespace WinterSolstice {
 			}
 		}
 	}
+	void SceneHierarchyPanel::SetSelectedEntity(Raiden::Entity entity)
+	{
+		m_SelectionContext = entity;
+	}
 	void SceneHierarchyPanel::DrawEntityNode(Raiden::Entity entity, std::vector<Ref<Raiden::Scene::ListNode>>::iterator& it)
 	{
 		auto& tag = entity.GetComponent<Raiden::TagComponent>().Tag;

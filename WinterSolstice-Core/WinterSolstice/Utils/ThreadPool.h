@@ -393,6 +393,7 @@ namespace WinterSolstice {
 			{
 				if (detach)
 					std::thread(&SynchronizeThread::Run, this).detach();
+				MinimizeRun = []() {};
 			}
 			~SynchronizeThread() {}
 
@@ -402,14 +403,20 @@ namespace WinterSolstice {
 					//Queue_Woker.push_back(begin);
 					begin.WokerFunction();
 				}
-				start = true;
+				SetStart(true);
 			}
 			void End()
 			{
 				for (auto end : Final_Woker_End)
 					//Queue_Woker.push_back(end);
 					end.WokerFunction();
-				start = false;
+				SetStart(false);
+			}
+			void AddMinimizedTask(std::function<void()> fn) {
+				Himeko::WokerInfo<void()> info;
+				info.WokerFunction = fn;
+				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+				Queue_Woker.push_back(info);
 			}
 
 			void AddTask(std::function<void()> task) {
@@ -545,6 +552,19 @@ namespace WinterSolstice {
 			void FrameBegin() {
 				frame.release();
 			}
+			void FrameEnd() {
+				frame.acquire();
+			}
+			bool TryFrameAcquire() {
+				return frame.try_acquire();
+			}
+			void ExecuteWokerQueue() {
+				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+				while (!Queue_Woker.empty()) {
+					Queue_Woker.back().WokerFunction();
+					Queue_Woker.pop_back();
+				}
+			}
 			//bool isAlive() {};
 			void Kill() {
 				alive = false;
@@ -567,7 +587,24 @@ namespace WinterSolstice {
 				std::shared_lock<std::shared_mutex> lock(Execute_mutex);
 				return Execute;
 			}
-			
+
+			bool GetStart() {
+				return start;
+			}
+			void SetStart(bool set) {
+				if (std::this_thread::get_id() != id)
+					std::unique_lock<std::shared_mutex> lock(RWMutexStart); // 获取写入锁
+				start = set;
+			}
+
+			bool GetMinimized() {
+				return Minimized;
+			}
+			void SetMinimized(bool value) {
+				if (std::this_thread::get_id() != id)
+					std::unique_lock<std::shared_mutex> lock(RWMutexMinimized); // 获取写入锁
+				Minimized = value;
+			}
 			void ClearQueue_Woker() {
 				std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
 				Queue_Woker.clear();
@@ -577,39 +614,51 @@ namespace WinterSolstice {
 				id = std::this_thread::get_id();
 				while (alive)
 				{
-					frame.acquire();
-					Begin();
-					while (!Queue_Woker.empty() || GetExecute()) {
-						Himeko::WokerInfo<void()> info;
-						info.WokerFunction = []() {};
-						woker.acquire();
-						{
-							std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
-							info = std::move(Queue_Woker.back());
-							Queue_Woker.pop_back();
+					if (!GetMinimized()) {
+						frame.acquire();
+						Begin();
+						while (!Queue_Woker.empty() || GetExecute()) {
+							Himeko::WokerInfo<void()> info;
+							info.WokerFunction = []() {};
+							woker.acquire();
+							{
+								std::lock_guard<std::recursive_mutex> lock(Queue_mutex);
+								info = std::move(Queue_Woker.back());
+								Queue_Woker.pop_back();
+							}
+							try
+							{
+								info.WokerFunction();
+							}
+							catch (const std::exception&)
+							{
+								Kiana_CORE_WARN("Runtime Error:{0}", info.FunctionInfo);
+							}
 						}
-						try
-						{
-							info.WokerFunction();
-						}
-						catch (const std::exception&)
-						{
-							Kiana_CORE_WARN("Runtime Error:{0}", info.FunctionInfo);
-						}
+						End();
 					}
-					End();
+					else {
+						MinimizeRun();
+					}
 				}
 			}
+			void SetMinimizeRun(std::function<void()> task) {
+				MinimizeRun = std::move(task);
+			}
 		private:
+			std::thread::id id;
 			bool alive;
-			bool Sychronize = false;
 			bool start = false;
 			bool Execute = false;
-			std::thread::id id;
+			bool Minimized = false;
+			bool Sychronize = false;
+			std::function<void()> MinimizeRun;
+			std::shared_mutex RWMutexStart;
+			std::shared_mutex Execute_mutex;
+			std::shared_mutex RWMutexMinimized;
+			std::recursive_mutex Queue_mutex;
 			std::counting_semaphore<4> frame{ 0 };
 			std::counting_semaphore<64> woker{ 0 };
-			std::shared_mutex Execute_mutex;
-			std::recursive_mutex Queue_mutex;
 			std::deque<WokerInfo<void()>> Queue_Woker;
 			std::vector<WokerInfo<void()>> Final_Woker_Begin;
 			std::vector<WokerInfo<void()>> Final_Woker_End;

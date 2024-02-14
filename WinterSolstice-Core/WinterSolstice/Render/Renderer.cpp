@@ -70,20 +70,12 @@ namespace WinterSolstice {
 		}
 		void Renderer::EndSceneShadowMap()
 		{
-			//auto result1 = Application::GetThreadPool().AnsycTask([]()
-				//{
 			std::stable_sort(Bronya::Renderer::RenderQueue_opacity_ShadowMap.begin(), Bronya::Renderer::RenderQueue_opacity_ShadowMap.end(), [](auto f1, auto f2) {
 				return f1.zBuffer > f2.zBuffer;
 				});
-			//});
-		//auto result2 = Application::GetThreadPool().AnsycTask([]()
-			//{
 			std::stable_sort(Bronya::Renderer::RenderQueue_Translucent_ShadowMap.begin(), Bronya::Renderer::RenderQueue_Translucent_ShadowMap.end(), [](auto f1, auto f2) {
 				return f1.zBuffer > f2.zBuffer;
 				});
-			//});
-		//result1.get();
-		//result2.get();
 		}
 		void Renderer::Flush()
 		{

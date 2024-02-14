@@ -1,8 +1,8 @@
 #version 450 core
-layout (location = 0) out vec4 gPosition;
-layout (location = 1) out vec4 gNormal;
-layout (location = 2) out vec4 gAlbedoSpec;
-layout (location = 3) out int gEntity;
+layout (location = 0) out int gEntity;
+layout (location = 1) out vec4 gPosition;
+layout (location = 2) out vec4 gNormal;
+layout (location = 3) out vec4 gAlbedoSpec;
 layout (binding = 0) uniform sampler2D u_Textures[32];
 
 in vec2 TexCoords;
