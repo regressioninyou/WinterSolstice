@@ -4,10 +4,10 @@ layout(location = 1) out int v_Entity;
 
 in vec2 TexCoords;
 
-layout (binding = 0)uniform isampler2D gEntity;
-layout (binding = 1)uniform sampler2D gPosition;
-layout (binding = 2)uniform sampler2D gNormal;
-layout (binding = 3)uniform sampler2D gAlbedoSpec;  
+layout (binding = 0)uniform sampler2D gAlbedoSpec;  
+layout (binding = 1)uniform isampler2D gEntity;
+layout (binding = 2)uniform sampler2D gPosition;
+layout (binding = 3)uniform sampler2D gNormal;
 
 struct Light {
     vec3 Position;

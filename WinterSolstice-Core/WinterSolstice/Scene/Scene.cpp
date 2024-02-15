@@ -133,23 +133,23 @@ namespace WinterSolstice {
 				// Draw sprites
 				Bronya::Renderer2D::BeginScene(*mainCamera, cameraTransform);
 				{
-					auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+					auto group = m_Registry.group<TransformComponent, TextureRendererComponent>(entt::get<SpriteRendererComponent>);
 					for (auto entity : group)
 					{
-						auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+						auto [transform, texture] = group.get<TransformComponent, TextureRendererComponent>(entity);
 
-						Bronya::Renderer2D::DrawSprite(transform.GetTransform(), sprite, (int)entity);
+						Bronya::Renderer2D::DrawSprite(transform.GetTransform(), texture, (int)entity);
 					}
 				}
 
 				// Draw circles
 				{
-					auto view = m_Registry.view<TransformComponent, CircleRendererComponent>();
-					for (auto entity : view)
+					auto group = m_Registry.group<TransformComponent, TextureRendererComponent>(entt::get<CircleRendererComponent>);
+					for (auto entity : group)
 					{
-						auto [transform, circle] = view.get<TransformComponent, CircleRendererComponent>(entity);
+						auto [transform, circle,texture] = group.get<TransformComponent, CircleRendererComponent, TextureRendererComponent>(entity);
 
-						Bronya::Renderer2D::DrawCircle(transform.GetTransform(), circle.Color, circle.Thickness, circle.Fade, (int)entity);
+						Bronya::Renderer2D::DrawCircle(transform.GetTransform(), texture.Color, circle.Thickness, circle.Fade, (int)entity);
 					}
 				}
 				Bronya::Renderer2D::EndScene();
@@ -254,176 +254,6 @@ namespace WinterSolstice {
 			taskResults.push_back(Application::GetThreadPool().AnsycTaskShared(func, child, this));
 			Elysia.PlumeUnLock();
 		}
-		void Scene::SubmitEntity3D(Ref<Scene::ListNode>& root, TransformComponent translation, int depth) {
-			auto func = [this, root, translation, depth](Ref<Scene::ListNode> child, Scene* scene)->int {
-				Entity entity(child->entity, scene);
-				if (entity.HasComponent<ObjectComponent>()) {
-					//auto [transform, m] = m_Registry.get<TransformComponent, ObjectComponent>(child->entity);
-					auto& transform = entity.GetComponent<TransformComponent>();
-					auto& m = entity.GetComponent<ObjectComponent>();
-					auto& mesh = m.object;
-					auto t = transform + translation;
-					//auto& obj = entity.GetComponent<ObjectComponent>().object;
-					//mesh->SetTranslation({ t.Translation,t.Rotation,t.Scale });
-					//scene->SubmitEntity3D(child, t, depth + 1);
-					if (mesh->GetObjectClass() == ObjectClass::Mesh)
-					{
-						auto& s = entity.GetComponent<MaterialComponent>();
-						auto& shaders = s.material;
-						auto trans = t.GetTransform();
-						DrawCall* drawCall = dynamic_cast<DrawCall*>(mesh.get());
-						{
-							//if (shaders->) {
-							for (auto& shader : *shaders) {
-								auto material = shader.second;
-								auto task = [material, drawCall, trans]()->bool {
-									material->SetMat4("uModel", trans);
-									drawCall->BindTexture(material);
-									return drawCall->isReady();
-									};
-								Bronya::Renderer::SubmitQue(drawCall->getVertexArray(), material, task, mesh->GetZBuffer(), drawCall->isTranslucent());
-								//}
-							}
-						}
-						//{
-						//	Renderer::RenderSubQueue renderque;
-						//	renderque.task = [=]() {
-						//		shader->Get("Tirangle")->SetMat4("uModel", trans);
-						//		drawCall->BindTexture(shader->Get("Tirangle"));
-						//		};
-						//	renderque.zBuffer3 = mesh->GetZBuffer();
-						//	KyBao::Renderer::SubmitLineQue(drawCall->getVertexArray(), shader->Get("Tirangle"), renderque);
-						//}
-						//shader->Get("Tirangle")->Bind();
-						//shader->Get("Tirangle")->SetMat4("uModel", t.GetTransform());
-						//KyBao::Renderer::SubmitLine(drawCall->getVertexArray(), shader->Get("Tirangle"));
-					}
-					else {
-						scene->SubmitEntity3D(child, t, depth + 1);
-					}
-					//mesh->BVHDrawBounds();
-					//维护obj
-				}
-				else {
-					auto transform = scene->m_Registry.get<TransformComponent>(entity);
-					auto t = transform + translation;
-					if (entity.HasComponent<CircleRendererComponent>())
-					{
-						auto circle = scene->m_Registry.get<CircleRendererComponent>(entity);
-						Bronya::Renderer2D::DrawCircle(t.GetTransform(), circle.Color, circle.Thickness, circle.Fade, (int)entity);
-					}
-					else if (entity.HasComponent<SpriteRendererComponent>()) {
-						auto sprite = scene->m_Registry.get<SpriteRendererComponent>(entity);
-						Bronya::Renderer2D::DrawSprite(t.GetTransform(), sprite, (int)entity);
-					}
-					scene->SubmitEntity3D(child, t, depth + 1);
-				}
-				return 1;
-				};
-
-
-#if 0
-			for (auto child : root->child)
-				AddTaskResult(func, child);
-#else // MoreAndMore
-			if (depth >= 1) {
-				std::vector<std::future<int>> fints;
-				for (auto& child : root->child)
-					fints.push_back(Application::GetThreadPool().AnsycTask(func, child, this));
-				for (auto& fint : fints) {
-					fint.get();
-				}
-			}
-			else
-				for (auto child : root->child)
-					func(child, this);
-#endif
-		}
-		void Scene::SubmitEntityShadowMap3D(Ref<Scene::ListNode>& root, TransformComponent translation, int depth) {
-			auto func = [this, root, translation, depth](Ref<Scene::ListNode> child, Scene* scene)->int {
-				Entity entity(child->entity, scene);
-				if (entity.HasComponent<ObjectComponent>()) {
-					//auto [transform, m] = m_Registry.get<TransformComponent, ObjectComponent>(child->entity);
-					auto& transform = entity.GetComponent<TransformComponent>();
-					auto& m = entity.GetComponent<ObjectComponent>();
-					auto& mesh = m.object;
-					auto t = transform + translation;
-					//auto& obj = entity.GetComponent<ObjectComponent>().object;
-					//mesh->SetTranslation({ t.Translation,t.Rotation,t.Scale });
-					//scene->SubmitEntity3D(child, t, depth + 1);
-					if (mesh->GetObjectClass() == ObjectClass::Mesh)
-					{
-						auto& s = entity.GetComponent<MaterialComponent>();
-						auto& shaders = s.material;
-						auto trans = t.GetTransform();
-						DrawCall* drawCall = dynamic_cast<DrawCall*>(mesh.get());
-						{
-							//if (shaders->) {
-							for (auto& shader : *shaders) {
-								auto material = shader.second;
-								auto task = [material, drawCall, trans]()->bool {
-									material->SetMat4("uModel", trans);
-									drawCall->BindTexture(material);
-									return drawCall->isReady();
-									};
-								Bronya::Renderer::SubmitQueShadowMap(drawCall->getVertexArray(), material, task, mesh->GetZBuffer(), drawCall->isTranslucent());
-								//}
-							}
-						}
-						//{
-						//	Renderer::RenderSubQueue renderque;
-						//	renderque.task = [=]() {
-						//		shader->Get("Tirangle")->SetMat4("uModel", trans);
-						//		drawCall->BindTexture(shader->Get("Tirangle"));
-						//		};
-						//	renderque.zBuffer3 = mesh->GetZBuffer();
-						//	KyBao::Renderer::SubmitLineQue(drawCall->getVertexArray(), shader->Get("Tirangle"), renderque);
-						//}
-						//shader->Get("Tirangle")->Bind();
-						//shader->Get("Tirangle")->SetMat4("uModel", t.GetTransform());
-						//KyBao::Renderer::SubmitLine(drawCall->getVertexArray(), shader->Get("Tirangle"));
-					}
-					else {
-						scene->SubmitEntity3D(child, t, depth + 1);
-					}
-					//mesh->BVHDrawBounds();
-					//维护obj
-				}
-				else {
-					auto transform = scene->m_Registry.get<TransformComponent>(entity);
-					auto t = transform + translation;
-					if (entity.HasComponent<CircleRendererComponent>())
-					{
-						auto circle = scene->m_Registry.get<CircleRendererComponent>(entity);
-						Bronya::Renderer2D::DrawCircle(t.GetTransform(), circle.Color, circle.Thickness, circle.Fade, (int)entity);
-					}
-					else if (entity.HasComponent<SpriteRendererComponent>()) {
-						auto sprite = scene->m_Registry.get<SpriteRendererComponent>(entity);
-						Bronya::Renderer2D::DrawSprite(t.GetTransform(), sprite, (int)entity);
-					}
-					scene->SubmitEntity3D(child, t, depth + 1);
-				}
-				return 1;
-				};
-
-
-#if 0
-			for (auto child : root->child)
-				AddTaskResult(func, child);
-#else // MoreAndMore
-			if (depth >= 1) {
-				std::vector<std::future<int>> fints;
-				for (auto& child : root->child)
-					fints.push_back(Application::GetThreadPool().AnsycTask(func, child, this));
-				for (auto& fint : fints) {
-					fint.get();
-				}
-			}
-			else
-				for (auto child : root->child)
-					func(child, this);
-#endif
-		}
 		void Scene::SetDefaultImage(const std::string& defualtPath)
 		{
 			DefaultTexture = Bronya::RenderCommand::GetTexture2D(defualtPath);
@@ -494,9 +324,9 @@ namespace WinterSolstice {
 		{
 			WaitRenderTasks.clear();
 			{
-				auto group = m_Registry.group<TransformComponent, MaterialComponent>(entt::get<ObjectComponent>);
-				for (auto& entity : group) {
-					auto [transform, object, PBR] = group.get<TransformComponent, ObjectComponent, MaterialComponent>(entity);
+				auto view = m_Registry.view<TransformComponent, MaterialComponent, ObjectComponent, TextureRendererComponent>();
+				for (auto& entity : view) {
+					auto [transform, object, PBR] = view.get<TransformComponent, ObjectComponent, MaterialComponent>(entity);
 					if (object.object->GetObjectClass() == ObjectClass::Mesh) {
 						auto mesh = object.object;
 						WaitRenderTasks.emplace_back(Application::GetThreadPool().AnsycTask([transform, entity, this, mesh, PBR]()->int
@@ -525,25 +355,26 @@ namespace WinterSolstice {
 				}
 			}
 			{
-				//auto group = m_Registry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-				//for (auto entity : group)
-				//{
-					//auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-					//auto it = m_TransformMat.find((uint32_t)entity);
-					//if (it != m_TransformMat.end()) {
-						//auto trans = transform.GetTransform() * it->second;
-						//Bronya::Renderer2D::DrawSprite(trans, sprite, (int)entity);
-					//}
-				//}
-
-				auto view = m_Registry.view<TransformComponent, CircleRendererComponent>();
+				auto view = m_Registry.view<TransformComponent, SpriteRendererComponent, TextureRendererComponent>();
 				for (auto entity : view)
 				{
-					auto [transform, circle] = view.get<TransformComponent, CircleRendererComponent>(entity);
+					auto [transform, texture] = view.get<TransformComponent, TextureRendererComponent>(entity);
 					auto it = m_TransformMat.find((uint32_t)entity);
 					if (it != m_TransformMat.end()) {
 						auto trans = transform.GetTransform() * it->second;
-						Bronya::Renderer2D::DrawCircle(trans, circle.Color, circle.Thickness, circle.Fade, (int)entity);
+						Bronya::Renderer2D::DrawSprite(trans, texture, (int)entity);
+					}
+				}
+			}
+			{
+				auto view = m_Registry.view<TransformComponent, CircleRendererComponent, TextureRendererComponent>();
+				for (auto entity : view)
+				{
+					auto [transform, circle,texture] = view.get<TransformComponent, CircleRendererComponent, TextureRendererComponent>(entity);
+					auto it = m_TransformMat.find((uint32_t)entity);
+					if (it != m_TransformMat.end()) {
+						auto trans = transform.GetTransform() * it->second;
+						Bronya::Renderer2D::DrawCircle(trans, texture.Color, circle.Thickness, circle.Fade, (int)entity);
 					}
 				}
 			}
@@ -572,6 +403,16 @@ namespace WinterSolstice {
 		{
 
 		}
+		template<>
+		void Scene::OnComponentAdd<CircleRendererComponent>(Entity entity, CircleRendererComponent& component)
+		{
+
+		}
+		template<>
+		void Scene::OnComponentAdd<TextureRendererComponent>(Entity entity, TextureRendererComponent& component)
+		{
+
+		}
 
 		template<>
 		void Scene::OnComponentAdd<TransformComponent>(Entity entity, TransformComponent& component)
@@ -590,6 +431,7 @@ namespace WinterSolstice {
 		{
 
 		}
+
 
 		template<>
 		void Scene::OnComponentAdd<NodeComponent>(Entity entity, NodeComponent& component)

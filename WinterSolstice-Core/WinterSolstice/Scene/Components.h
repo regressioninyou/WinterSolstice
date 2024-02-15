@@ -54,7 +54,6 @@ namespace WinterSolstice {
 		};
 		struct CircleRendererComponent
 		{
-			glm::vec4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 			float Thickness = 1.0f;
 			float Fade = 0.005f;
 
@@ -97,20 +96,28 @@ namespace WinterSolstice {
 				: Animate(a) {}
 		};
 
-		struct SpriteRendererComponent
-		{
+		struct TextureRendererComponent {
 			glm::vec4 Color = glm::vec4(1.0f);
 			Ref<Bronya::Texture2D> Texture;
 			std::unordered_map<std::string, Ref<Bronya::Texture2D>> Textures;
 			float TilingFactor = 1.0f;
 
-			SpriteRendererComponent() = default;
-			SpriteRendererComponent(const SpriteRendererComponent&) = default;
-			SpriteRendererComponent(const glm::vec4& color)
+			TextureRendererComponent() = default;
+			TextureRendererComponent(const TextureRendererComponent&) = default;
+			TextureRendererComponent(const glm::vec4& color)
 				: Color(color) {}
 
 			operator glm::vec4& () { return Color; }
 			operator const glm::vec4& () const { return Color; }
+		};
+
+		struct SpriteRendererComponent
+		{
+			float border = 0.0f;
+			SpriteRendererComponent() = default;
+			SpriteRendererComponent(const SpriteRendererComponent&) = default;
+			SpriteRendererComponent(float b)
+				:border(b) {};
 		};
 
 		struct AwalysShineComponent {

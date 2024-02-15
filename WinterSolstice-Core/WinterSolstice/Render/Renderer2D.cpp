@@ -14,6 +14,7 @@
 #include <condition_variable>
 #include <WinterSolstice/Core/True.h>
 
+#define SHADERSOURCE(x) std::string("T:/orther/main/c++/WinterSolstice/WinterSolstice-Editory/assets/shaders/").append(x)
 namespace WinterSolstice {
 	namespace Bronya {
 
@@ -210,9 +211,9 @@ namespace WinterSolstice {
 			for (uint32_t i = 0; i < s_Data.MaxTextureSlots; i++)
 				samplers[i] = i;
 
-			s_Data.QuadShader = Shader::Create("assets/shaders/Renderer2D_Quad.glsl");
-			s_Data.CircleShader = Shader::Create("assets/shaders/Renderer2D_Circle.glsl");
-			s_Data.LineShader = Shader::Create("assets/shaders/Renderer2D_Line.glsl");
+			s_Data.QuadShader = Shader::Create(SHADERSOURCE("Renderer2D_Quad.glsl"));
+			s_Data.CircleShader = Shader::Create(SHADERSOURCE("Renderer2D_Circle.glsl"));
+			s_Data.LineShader = Shader::Create(SHADERSOURCE("Renderer2D_Line.glsl"));
 			//s_Data.TextShader = Shader::Create("assets/shaders/Renderer2D_Text.glsl");
 
 			// Set first texture slot to 0
@@ -558,7 +559,7 @@ namespace WinterSolstice {
 			DrawLine(lineVertices[3], lineVertices[0], color, entityID);
 		}
 
-		void Renderer2D::DrawSprite(const glm::mat4& transform, Raiden::SpriteRendererComponent& src, int entityID)
+		void Renderer2D::DrawSprite(const glm::mat4& transform, Raiden::TextureRendererComponent& src, int entityID)
 		{
 			if (src.Texture)
 				DrawQuad(transform, src.Texture, src.TilingFactor, src.Color, entityID);

@@ -299,6 +299,8 @@ namespace WinterSolstice {
 			HasAddComponent<Raiden::CameraComponent>("Camera", *this);
 			HasAddComponent<Raiden::TransformComponent>("Transform", *this);
 			HasAddComponent<Raiden::SpriteRendererComponent>("Sprite Render", *this);
+			HasAddComponent<Raiden::CircleRendererComponent>("Cricle Render", *this);
+			HasAddComponent<Raiden::TextureRendererComponent>("Texture Render", *this);
 			HasAddComponent<Raiden::MaterialComponent>("Material", *this);
 			HasAddComponent<Raiden::ObjectComponent>("Object", *this);
 			ImGui::EndPopup();
@@ -389,12 +391,12 @@ namespace WinterSolstice {
 					ImGui::Text(std::string("Current Node : ").append(std::to_string((uint32_t)node->entity)).c_str());
 				});
 		}
-		if (entity.HasComponent<Raiden::SpriteRendererComponent>()) {
+		if (entity.HasComponent<Raiden::TextureRendererComponent>()) {
 			Ref<Object> obj = nullptr;
 			if (entity.HasComponent<Raiden::ObjectComponent>()) {
 				obj = entity.GetComponent<Raiden::ObjectComponent>().object;
 			}
-			DrawComponent<Raiden::SpriteRendererComponent>("Sprite Renderer", entity, [this, obj](auto& component)
+			DrawComponent<Raiden::TextureRendererComponent>("Sprite Renderer", entity, [this, obj](auto& component)
 				{
 					ImGui::ColorEdit4("Color", glm::value_ptr(component.Color));
 
@@ -430,7 +432,7 @@ namespace WinterSolstice {
 							//auto drawcall_ptr = CASTUINTPTR(drawcall);
 							bool use = drawcall->isUsingTexture(texture);
 							if (ImGui::Checkbox(std::string("Name : " + texture->getName()).c_str(), &use)) {
-								drawcall->SetUsingTexture(texture,use);
+								drawcall->SetUsingTexture(texture, use);
 							}
 							//ImGui::NextColumn(); // 切换到下一列
 							ImGui::Text(std::string("Type : " + texture->getType()).c_str());
@@ -458,6 +460,21 @@ namespace WinterSolstice {
 
 					ImGui::DragFloat("Tiling Factor", &component.TilingFactor, 0.1f, 0.0f, 100.0f);
 				});
+		}
+
+		if (entity.HasComponent<Raiden::CircleRendererComponent>()) {
+			DrawComponent<Raiden::CircleRendererComponent>("Circle", entity, [](auto& component) 
+				{
+					ImGui::DragFloat("##Thickness",&component.Thickness);
+					ImGui::DragFloat("##Fade", &component.Fade);
+				});
+		}
+		if (entity.HasComponent<Raiden::SpriteRendererComponent>()) {
+			DrawComponent<Raiden::SpriteRendererComponent>("Sprite", entity, [](auto& component)
+				{
+					ImGui::DragFloat("##border", &component.border);
+				});
+
 		}
 	}
 }

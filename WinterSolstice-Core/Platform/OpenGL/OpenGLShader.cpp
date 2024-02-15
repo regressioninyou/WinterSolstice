@@ -105,6 +105,7 @@ namespace WinterSolstice {
 				Kiana::Timer timer;
 				CompileOrGetVulkanBinaries(shaderSources);
 				CompileOrGetOpenGLBinaries();
+				//Compile(shaderSources);
 				CreateProgram();
 				Kiana_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
 			}
@@ -311,7 +312,7 @@ namespace WinterSolstice {
 				std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::GLShaderStageCachedVulkanFileExtension(stage));
 
 				std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
-				if (in.is_open())
+				if (!in.is_open())
 				{
 					in.seekg(0, std::ios::end);
 					auto size = in.tellg();
@@ -369,7 +370,7 @@ namespace WinterSolstice {
 				std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::GLShaderStageCachedOpenGLFileExtension(stage));
 
 				std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
-				if (in.is_open())
+				if (!in.is_open())
 				{
 					in.seekg(0, std::ios::end);
 					auto size = in.tellg();

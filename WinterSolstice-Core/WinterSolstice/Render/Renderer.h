@@ -62,7 +62,7 @@ namespace WinterSolstice {
 			static void DrawRect2D(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color, int entityID = -1);
 			static void DrawRect2D(const glm::mat4& transform, const glm::vec4& color, int entityID = -1);
 
-			static void DrawSprite2D(const glm::mat4& transform, Raiden::SpriteRendererComponent& src, int entityID);
+			static void DrawSprite2D(const glm::mat4& transform, Raiden::TextureRendererComponent& src, int entityID);
 
 			static float GetLineWidth2D();
 			static void SetLineWidth2D(float width);

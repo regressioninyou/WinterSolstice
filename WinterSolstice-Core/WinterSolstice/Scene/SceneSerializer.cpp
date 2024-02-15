@@ -41,18 +41,6 @@ namespace WinterSolstice {
 				scale.append_attribute("z") = transform.Scale.z;
 			}
 
-			if (entity.HasComponent<SpriteRendererComponent>())
-			{
-				auto& spriteRenderer = entity.GetComponent<SpriteRendererComponent>();
-				auto child = node.append_child("SpriteRendererComponent");
-
-				auto color = child.append_child("Color");
-				color.append_attribute("type") = "Float3";
-				color.append_attribute("r") = spriteRenderer.Color.r;
-				color.append_attribute("g") = spriteRenderer.Color.g;
-				color.append_attribute("b") = spriteRenderer.Color.b;
-				color.append_attribute("a") = spriteRenderer.Color.a;
-			}
 
 			if (entity.HasComponent<CameraComponent>())
 			{
@@ -146,7 +134,6 @@ namespace WinterSolstice {
 						{
 							auto& spriteRenderer = enti.AddComponent<SpriteRendererComponent>();
 							auto color = component.child("Color");
-							spriteRenderer.Color = glm::vec4{ color.attribute("r").as_float(),color.attribute("g").as_float() ,color.attribute("b").as_float() ,color.attribute("a").as_float() };
 						}
 					}
 				}

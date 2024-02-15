@@ -17,8 +17,8 @@ namespace WinterSolstice {
 		m_Texture2D = Bronya::Texture2D::Create("./assets/textures/Checkerboard.png");
 		Bronya::FramebufferSpecification fbsf;
 		fbsf.Attachments = {
-			Bronya::FramebufferTextureFormat::RED_INTEGER,
 			Bronya::FramebufferTextureFormat::RGBA16F,
+			Bronya::FramebufferTextureFormat::RED_INTEGER,
 			Bronya::FramebufferTextureFormat::RGBA16F,
 			Bronya::FramebufferTextureFormat::RGBA16F,
 			Bronya::FramebufferTextureFormat::Depth
@@ -121,7 +121,7 @@ namespace WinterSolstice {
 				m_Framebuffer->Bind();
 				Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
 				Bronya::RenderCommand::Clear();
-				m_Framebuffer->ClearAttachment(0, -1);
+				m_Framebuffer->ClearAttachment(1, -1);
 
 				m_ActiveScene->OnUpdateEditor(ts, editorCamera);
 				//if (m_ActiveScene->rootBone) {
@@ -194,7 +194,7 @@ namespace WinterSolstice {
 					model = glm::mat4(1.0f);
 					model = glm::translate(model, lightPositions[i]);
 					model = glm::scale(model, glm::vec3(0.125f));
-					Bronya::Renderer2D::DrawCircle(model, glm::vec4(lightColors[i], 1.0f), 1.0f, 0.005f, i + 1);
+					Bronya::Renderer2D::DrawCircle(model, glm::vec4(lightColors[i], 1.0f), i + 1);
 				}
 				Bronya::Renderer2D::EndScene();
 				Bronya::Renderer2D::Flush();
@@ -515,7 +515,7 @@ namespace WinterSolstice {
 				ShaderLibrary->Add("g_BufferMaterial" + elemnt->GetName(),
 					Bronya::Shader::Create(SHADERSOURCE("GBuffer/g_Buffer.vs"), SHADERSOURCE("GBuffer/g_Buffer.fs")));
 				child.AddComponent<Raiden::MaterialComponent>(ShaderLibrary);
-				auto texs = child.AddComponent<Raiden::SpriteRendererComponent>();
+				auto texs = child.AddComponent<Raiden::TextureRendererComponent>();
 				DrawCall* drawCall = dynamic_cast<DrawCall*>(elemnt.get());
 				for (auto tex : drawCall->getTexture())
 				{

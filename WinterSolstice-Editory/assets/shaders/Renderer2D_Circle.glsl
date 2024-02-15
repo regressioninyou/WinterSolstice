@@ -24,10 +24,11 @@ struct VertexOutput
 	vec4 Color;
 	float Thickness;
 	float Fade;
+    vec3 Normal; // Add Normal here
 };
 
 layout (location = 0) out VertexOutput Output;
-layout (location = 4) out flat int v_EntityID;
+layout (location = 5) out flat int v_EntityID;
 
 void main()
 {
@@ -37,6 +38,7 @@ void main()
 	Output.Fade = a_Fade;
 
 	v_EntityID = a_EntityID;
+	Output.Normal = normalize(mat3(u_ViewProjection) * vec3(0.0,0.0,1.0));
 
 	gl_Position = u_ViewProjection * vec4(a_WorldPosition, 1.0);
 }
@@ -44,8 +46,10 @@ void main()
 #type fragment
 #version 450 core
 
-layout(location = 0) out vec4 o_Color;
-layout(location = 1) out int o_EntityID;
+layout (location = 0) out vec4 o_Color;
+layout (location = 1) out int o_EntityID;
+layout (location = 2) out vec4 gPosition;
+layout (location = 3) out vec4 gNormal;
 
 struct VertexOutput
 {
@@ -53,10 +57,11 @@ struct VertexOutput
 	vec4 Color;
 	float Thickness;
 	float Fade;
+    vec3 Normal; // Add Normal here
 };
 
 layout (location = 0) in VertexOutput Input;
-layout (location = 4) in flat int v_EntityID;
+layout (location = 5) in flat int v_EntityID;
 
 void main()
 {
@@ -67,7 +72,8 @@ void main()
 
 	if (circle == 0.0)
 		discard;
-
+	gPosition = vec4(Input.LocalPosition.xyz,1.0);
+	gNormal = vec4(Input.Normal,1.0);
     // Set output color
     o_Color = Input.Color;
 	o_Color.a *= circle;

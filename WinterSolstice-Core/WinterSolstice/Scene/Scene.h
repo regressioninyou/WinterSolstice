@@ -55,8 +55,6 @@ namespace WinterSolstice {
 			void WaitRecaculateTransformNode(Ref<Scene::ListNode>& root, glm::mat4 translation, int depth = 0);
 			void SubmitRenderMesh();
 
-			void SubmitEntity3D(Ref<Scene::ListNode>& root, TransformComponent translation, int depth = 0);
-			void SubmitEntityShadowMap3D(Ref<Scene::ListNode>& root, TransformComponent translation, int depth = 0);
 			void DestoryAllChild(Entity entity, std::pair<int, Ref<Scene::ListNode>> pair);
 
 			void AddTaskResult(std::function<int(Ref<Scene::ListNode> child, Scene* scene)> func, Ref<Scene::ListNode>& child);

@@ -259,7 +259,7 @@ namespace WinterSolstice {
 		{
 			Renderer2D::DrawRect(transform, color, entityID);
 		}
-		void Renderer::DrawSprite2D(const glm::mat4& transform, Raiden::SpriteRendererComponent& src, int entityID)
+		void Renderer::DrawSprite2D(const glm::mat4& transform, Raiden::TextureRendererComponent& src, int entityID)
 		{
 			Renderer2D::DrawSprite(transform, src, entityID);
 		}
