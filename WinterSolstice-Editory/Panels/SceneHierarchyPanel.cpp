@@ -82,7 +82,7 @@ namespace WinterSolstice {
 	{
 		m_SelectionContext = entity;
 	}
-	void SceneHierarchyPanel::DrawEntityNode(Raiden::Entity entity, std::vector<Ref<Raiden::Scene::ListNode>>::iterator& it)
+	void SceneHierarchyPanel::DrawEntityNode(Raiden::Entity entity, std::vector<Ref<Raiden::Scene::ListNode>>::iterator& iterat)
 	{
 		auto& tag = entity.GetComponent<Raiden::TagComponent>().Tag;
 		ImGuiTreeNodeFlags flags = ((m_SelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
@@ -120,7 +120,9 @@ namespace WinterSolstice {
 			}
 			now->child.erase(
 				std::remove_if(now->child.begin(), now->child.end(),
-					[](const Ref<Raiden::Scene::ListNode>& o) { return !o; }),
+					[](const Ref<Raiden::Scene::ListNode>& o) { 
+						return !o; 
+					}),
 				now->child.end()
 			);
 			//if (opened)
@@ -133,8 +135,8 @@ namespace WinterSolstice {
 		}
 		if (entityDeleted)
 		{
-			//m_Context->DestoryEntity(entity);
-			it->reset();
+			m_Context->DestoryEntity(entity);
+			iterat->reset();
 			if (m_SelectionContext == entity)
 				m_SelectionContext = {};
 		}
@@ -409,7 +411,10 @@ namespace WinterSolstice {
 							ImTextureID id = (ImTextureID)(m_Context->GetDefaultImage()->GetRendererID());
 							//auto objId = drawcall->getTexture("texture_diffuse");
 							//if (objId) {
-							id = (ImTextureID)(texture->GetRendererID());
+							uint32_t textureId = texture->GetRendererID();
+							if (textureId > 0) {
+								id = (ImTextureID)textureId;
+							}
 							//}
 							ImGui::Columns(2); // 
 							ImGui::SetColumnWidth(0, 66); // 设置第一列的宽度为200像素
@@ -440,6 +445,14 @@ namespace WinterSolstice {
 							ShowImage(texture, drawcall, Computed);
 							ImGui::Columns(1); // 恢复为单列布局
 							ImGui::Text(std::string("Manterial : ").append(texture->isTranslucent() ? "半透明" : "不透明").c_str());
+							float tiling = drawcall->GetTilingFactor(texture);
+							ImGui::DragFloat("Tiling Factor", &tiling, 0.1f, 0.0f, 100.0f);
+							drawcall->SetTilingFactor(texture, tiling);
+						}
+					}
+					if (!obj) {
+						if (ImGui::Button("Add Texture")) {
+							//component.Textures
 						}
 					}
 					if (ImGui::BeginDragDropTarget())
@@ -458,14 +471,13 @@ namespace WinterSolstice {
 						ImGui::EndDragDropTarget();
 					}
 
-					ImGui::DragFloat("Tiling Factor", &component.TilingFactor, 0.1f, 0.0f, 100.0f);
 				});
 		}
 
 		if (entity.HasComponent<Raiden::CircleRendererComponent>()) {
-			DrawComponent<Raiden::CircleRendererComponent>("Circle", entity, [](auto& component) 
+			DrawComponent<Raiden::CircleRendererComponent>("Circle", entity, [](auto& component)
 				{
-					ImGui::DragFloat("##Thickness",&component.Thickness);
+					ImGui::DragFloat("##Thickness", &component.Thickness);
 					ImGui::DragFloat("##Fade", &component.Fade);
 				});
 		}

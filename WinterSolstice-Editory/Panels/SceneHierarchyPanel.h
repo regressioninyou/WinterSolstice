@@ -18,7 +18,7 @@ namespace WinterSolstice {
 		Raiden::Entity SeletedEntity() { return m_SelectionContext; };
 		void SetSelectedEntity(Raiden::Entity entity);
 	private:
-		void DrawEntityNode(Raiden::Entity entity,std::vector<Ref<Raiden::Scene::ListNode>>::iterator& it);
+		void DrawEntityNode(Raiden::Entity entity,std::vector<Ref<Raiden::Scene::ListNode>>::iterator& iterat);
 		void DrawComponents(Raiden::Entity entity);
 	private:
 		Ref<Bronya::Shader> Computed;

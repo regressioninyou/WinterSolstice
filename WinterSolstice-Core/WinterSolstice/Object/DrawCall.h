@@ -172,6 +172,13 @@ namespace WinterSolstice {
 		virtual bool GetAlawysRunning() {
 			return AlwaysRunning;
 		}
+		virtual void SetTilingFactor(const Ref<Bronya::Texture2D> texture, float TilingFactor) {
+			if (TilingFactors.find(texture->getName()) != TilingFactors.end()) {
+				init = false;
+				ready = true;
+				TilingFactors[texture->getName()] = TilingFactor;
+			}
+		}
 
 		virtual void SetTilingFactor(const std::string& texture, float TilingFactor) {
 			if (TilingFactors.find(texture) != TilingFactors.end()) {
@@ -179,6 +186,12 @@ namespace WinterSolstice {
 				ready = true;
 				TilingFactors[texture] = TilingFactor;
 			}
+		}
+		virtual float GetTilingFactor(const Ref<Bronya::Texture2D> texture) {
+			if (TilingFactors.find(texture->getName()) != TilingFactors.end()) {
+				return TilingFactors[texture->getName()];
+			}
+			return -1.0f;
 		}
 		virtual float GetTilingFactor(const std::string& texture) {
 			if (TilingFactors.find(texture) != TilingFactors.end()) {

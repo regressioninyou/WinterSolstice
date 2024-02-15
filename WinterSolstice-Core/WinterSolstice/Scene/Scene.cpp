@@ -68,7 +68,7 @@ namespace WinterSolstice {
 						}
 					}
 				}
-				pair.second->child.erase(pair.second->child.begin() + pair.first);
+				//pair.second->child.erase(pair.second->child.begin() + pair.first);
 				m_Registry.destroy(entity);
 			}
 		}
