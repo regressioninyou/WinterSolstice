@@ -72,24 +72,25 @@ namespace WinterSolstice {
 					MouseRotate(delta);
 				else if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 					MouseZoom(delta.y);
+
+				if (Input::IsKeyPressed(Key::W)) {
+					m_FocalPoint.z -= m_Speed * ts.GetSeconds();
+				}
+				if (Input::IsKeyPressed(Key::A)) {
+					m_FocalPoint.x -= m_Speed * ts.GetSeconds();
+				}
+				if (Input::IsKeyPressed(Key::S)) {
+					m_FocalPoint.z += m_Speed * ts.GetSeconds();
+				}
+				if (Input::IsKeyPressed(Key::D)) {
+					m_FocalPoint.x += m_Speed * ts.GetSeconds();
+				}
 			}
 			if (Input::IsKeyPressed(Key::Space)) {
 				m_FocalPoint.y += m_Speed * ts.GetSeconds();
 			}
 			if (Input::IsKeyPressed(Key::LeftControl)) {
 				m_FocalPoint.y -= m_Speed * ts.GetSeconds();
-			}
-			if (Input::IsKeyPressed(Key::W)) {
-				m_FocalPoint.z -= m_Speed * ts.GetSeconds();
-			}
-			if (Input::IsKeyPressed(Key::A)) {
-				m_FocalPoint.x -= m_Speed * ts.GetSeconds();
-			}
-			if (Input::IsKeyPressed(Key::S)) {
-				m_FocalPoint.z += m_Speed * ts.GetSeconds();
-			}
-			if (Input::IsKeyPressed(Key::D)) {
-				m_FocalPoint.x += m_Speed * ts.GetSeconds();
 			}
 
 			UpdateView();

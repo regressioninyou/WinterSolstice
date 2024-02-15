@@ -500,6 +500,11 @@ namespace WinterSolstice {
 			glUseProgram(0);
 		}
 
+		void OpenGLShader::SetBool(const std::string& name, bool value)
+		{
+			UploadUniformBool(name,value);
+		}
+
 		void OpenGLShader::SetInt(const std::string& name, int value)
 		{
 			UploadUniformInt(name, value);
@@ -552,6 +557,12 @@ namespace WinterSolstice {
 		void OpenGLShader::SetName(std::string name)
 		{
 			m_Name = name;
+		}
+
+		void OpenGLShader::UploadUniformBool(const std::string& name, bool value)
+		{
+			GLint location = GetUniformLocation(name);
+			glUniform1i(location, (int)value);
 		}
 
 		void OpenGLShader::UploadUniformInt(const std::string& name, int value)

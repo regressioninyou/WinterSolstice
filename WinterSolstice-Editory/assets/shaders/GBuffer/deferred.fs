@@ -1,13 +1,16 @@
 #version 450 core
-layout(location = 0) out vec4 FragColor;
-layout(location = 1) out int v_Entity;
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out int v_Entity;
+layout (location = 2) out vec4 v_Bloom;
 
 in vec2 TexCoords;
 
 layout (binding = 0)uniform sampler2D gAlbedoSpec;  
 layout (binding = 1)uniform isampler2D gEntity;
-layout (binding = 2)uniform sampler2D gPosition;
-layout (binding = 3)uniform sampler2D gNormal;
+layout (binding = 2)uniform sampler2D gBloom;
+
+layout (binding = 3)uniform sampler2D gPosition;
+layout (binding = 4)uniform sampler2D gNormal;
 
 struct Light {
     vec3 Position;
@@ -30,6 +33,7 @@ void main()
     ivec2 texelCoord = ivec2(int(viewWidth * TexCoords.x), int(viewHeight * TexCoords.y));
     ivec4 texelValue = texelFetch(gEntity, texelCoord, 0);
     v_Entity = texelValue.r;
+    v_Bloom = texture(gBloom,TexCoords);
    // v_Entity = texelCoord.y; 
     // retrieve data from gbuffer
     vec3 FragPos = texture(gPosition, TexCoords).rgb;

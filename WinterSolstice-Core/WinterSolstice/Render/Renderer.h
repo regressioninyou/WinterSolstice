@@ -41,6 +41,7 @@ namespace WinterSolstice {
 			static void SubmitLine(const std::shared_ptr<VertexArray>& vertexArray, const std::shared_ptr<Shader>& shader, int entityID);
 			static void SubmitLineQue(const std::shared_ptr<VertexArray>& vertexArray, const std::shared_ptr<Shader>& shader, RenderSubQueue que);
 
+			static void DrawScreen(const std::shared_ptr<VertexArray>& vertexArry, std::function<void()> callback);
 			// Primitives
 			static void DrawQuad2D(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
 			static void DrawQuad2D(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color);

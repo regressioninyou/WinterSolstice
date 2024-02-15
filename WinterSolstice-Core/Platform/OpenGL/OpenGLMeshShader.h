@@ -16,6 +16,7 @@ namespace WinterSolstice {
 			virtual void Bind() const override;
 			virtual void Unbind() const override;
 
+			virtual void SetBool(const std::string& name, bool value)override;
 			virtual void SetInt(const std::string& name, int value) override;
 			virtual void SetIntArray(const std::string& name, int* values, uint32_t count) override;
 			virtual void SetUIntArray(const std::string& name, uint32_t* values, uint32_t count) override;
@@ -30,6 +31,7 @@ namespace WinterSolstice {
 			virtual const std::string& GetName() const override { return m_Name; }
 			virtual void SetName(std::string name) override;
 
+			void UploadUniformBool(const std::string& name, bool value);
 			void UploadUniformInt(const std::string& name, int value);
 			void UploadUniformIntArray(const std::string& name, int* values, uint32_t count);
 			void UploadUniformUIntArray(const std::string& name, uint32_t* values, uint32_t count);

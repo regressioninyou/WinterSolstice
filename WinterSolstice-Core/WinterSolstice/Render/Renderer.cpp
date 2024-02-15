@@ -172,6 +172,11 @@ namespace WinterSolstice {
 			vertexArray->Bind();
 			RenderCommand::DrawIndex(vertexArray);
 		}
+		void Renderer::DrawScreen(const std::shared_ptr<VertexArray>& vertexArry, std::function<void()> callback)
+		{
+			callback();
+			RenderCommand::DrawIndex(vertexArry);
+		}
 		void Renderer::SubmitLine(const std::shared_ptr<VertexArray>& vertexArray, const std::shared_ptr<Shader>& shader)
 		{
 			shader->Bind();

@@ -26,6 +26,7 @@ namespace WinterSolstice {
 
 			virtual void BindTextureID(FramebufferTextureFormat format, uint32_t slot) override;
 			virtual void BindColorAttachments() override;
+			virtual void BindColorAttachments(uint32_t slot, uint32_t index) override;
 			virtual void UnBindTextureID(FramebufferTextureFormat format, uint32_t slot) override;
 
 			virtual uint32_t GetRendererID()override;

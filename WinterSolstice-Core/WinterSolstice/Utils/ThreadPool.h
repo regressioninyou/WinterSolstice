@@ -130,7 +130,7 @@ namespace WinterSolstice {
 				l.acquire();
 			}
 			template <class F, class... Args>
-			auto AnsycTask(F&& f, Args &&... args) -> std::future<decltype(f(args...))> {
+			auto AnsycTask(F&& f, Args &&... args) -> std::shared_future<decltype(f(args...))> {
 				using return_type = decltype(f(args...));
 
 				auto boundTask = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
@@ -141,15 +141,11 @@ namespace WinterSolstice {
 					info.ExecuteCount = 1;
 					if (occupy == true) {
 						info.WokerFunction();
-						std::lock_guard<std::recursive_mutex> lock(mutexx);
-						info.WokerFunction = [boundTask]() {};
 						Wake();
-						return std::move(boundTask->get_future());
+						return boundTask->get_future();
 					}
 					std::lock_guard<std::recursive_mutex> lock(mutexx);
 					Woker_Queue.push_back(info);
-					//AnsycTaskInfo()
-					//worker_que.push_back(std::pair{ 1,[this, boundTask]() {(*boundTask)(); } });
 					Wake();
 				}
 				return boundTask->get_future();
@@ -331,11 +327,11 @@ namespace WinterSolstice {
 				worker_pool[worker_index]->AddTaskAwait(fn);
 			}
 			template <class F, class... Args>
-			auto AnsycTask(F&& f, Args &&... args) -> std::future<decltype(f(args...))> {
+			auto AnsycTask(F&& f, Args &&... args) -> std::shared_future<decltype(f(args...))> {
 
 				auto worker_index = this->round_robin.fetch_add(1) % this->nowThread;
 
-				return std::forward<std::future<decltype(f(args...))>>(worker_pool[worker_index]->AnsycTask<F, Args...>(std::forward<F>(f), std::forward<Args>(args)...));
+				return std::forward<std::shared_future<decltype(f(args...))>>(worker_pool[worker_index]->AnsycTask<F, Args...>(std::forward<F>(f), std::forward<Args>(args)...));
 #if  0
 				std::pair<uint32_t, BaseThread*> pair = { worker_pool[0]->GetWokerCount(),worker_pool[0] };
 				for (size_t i = 1; i < worker_pool.size(); i++) {

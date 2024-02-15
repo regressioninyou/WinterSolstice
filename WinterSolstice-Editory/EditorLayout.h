@@ -1,5 +1,6 @@
 #pragma once 
 #include "Panels/SceneHierarchyPanel.h"
+#include "ScreenPostProcessing/ScreenPostProcessing.h"
 namespace WinterSolstice {
 	class EditorLayout : public Layer
 	{
@@ -26,6 +27,7 @@ namespace WinterSolstice {
 		//OrthographicCameraController m_CameraController;
 		Ref<Bronya::VertexArray> m_SquareVA;
 		Ref<Bronya::Shader> m_SquareVAShader;
+		//Ref<Bronya::Shader> HDR_shader;
 
 		std::vector<glm::vec3> lightPositions;
 		std::vector<glm::vec3> lightColors;
@@ -35,6 +37,7 @@ namespace WinterSolstice {
 
 		Ref<Bronya::Framebuffer> m_Gbuffer;
 		Ref<Bronya::Framebuffer> m_Framebuffer;
+		//Ref<Bronya::Framebuffer> HDR_Buffer;
 
 		Ref<Bronya::Texture2D> m_Texture2D;
 
@@ -50,6 +53,7 @@ namespace WinterSolstice {
 		Raiden::Entity m_SecondCamera;
 
 		SceneHierarchyPanel m_Hierarchy;
+		ScreenPostProcessing m_ScreenProcess;
 
 		bool m_PrimaryCamera = false;
 
@@ -58,5 +62,12 @@ namespace WinterSolstice {
 		glm::vec2 m_ViewportSize = { 0.0f,0.0f };
 		glm::vec2 m_ViewportBound[2];
 		glm::vec4 m_SquareColor = { 0.0f,0.1f,0.2f,1.0f };
+
+		int m_GizmoType = -1;
+		enum class SceneState
+		{
+			Edit = 0, Play = 1, Simulate = 2
+		};
+		SceneState m_SceneState = SceneState::Edit;
 	};
 }

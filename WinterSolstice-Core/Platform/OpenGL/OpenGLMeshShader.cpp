@@ -56,6 +56,11 @@ namespace WinterSolstice {
 			glUseProgram(0);
 		}
 
+		void OpenGLMeshShader::SetBool(const std::string& name, bool value)
+		{
+			UploadUniformBool(name, value);
+		}
+
 		void OpenGLMeshShader::SetInt(const std::string& name, int value)
 		{
 			UploadUniformInt(name, value);
@@ -98,6 +103,12 @@ namespace WinterSolstice {
 		void OpenGLMeshShader::SetMat4(const std::string& name, const glm::mat4& value)
 		{
 			UploadUniformMat4(name, value);
+		}
+
+		void OpenGLMeshShader::UploadUniformBool(const std::string& name, bool value)
+		{
+			GLint location = GetUniformLocation(name);
+			glUniform1i(location, (int)value);
 		}
 
 		void OpenGLMeshShader::UploadUniformInt(const std::string& name, int value)

@@ -147,7 +147,7 @@ namespace WinterSolstice {
 					auto group = m_Registry.group<TransformComponent, TextureRendererComponent>(entt::get<CircleRendererComponent>);
 					for (auto entity : group)
 					{
-						auto [transform, circle,texture] = group.get<TransformComponent, CircleRendererComponent, TextureRendererComponent>(entity);
+						auto [transform, circle, texture] = group.get<TransformComponent, CircleRendererComponent, TextureRendererComponent>(entity);
 
 						Bronya::Renderer2D::DrawCircle(transform.GetTransform(), texture.Color, circle.Thickness, circle.Fade, (int)entity);
 					}
@@ -293,9 +293,7 @@ namespace WinterSolstice {
 			WaitTransformTask.clear();
 			WaitRecaculateTransformNode(root, glm::mat4(1.0f));
 			for (auto& get : WaitTransformTask) {
-				if (get.valid()) {
-					get.get();
-				}
+				get.get();
 			}
 		}
 
@@ -370,7 +368,7 @@ namespace WinterSolstice {
 				auto view = m_Registry.view<TransformComponent, CircleRendererComponent, TextureRendererComponent>();
 				for (auto entity : view)
 				{
-					auto [transform, circle,texture] = view.get<TransformComponent, CircleRendererComponent, TextureRendererComponent>(entity);
+					auto [transform, circle, texture] = view.get<TransformComponent, CircleRendererComponent, TextureRendererComponent>(entity);
 					auto it = m_TransformMat.find((uint32_t)entity);
 					if (it != m_TransformMat.end()) {
 						auto trans = transform.GetTransform() * it->second;

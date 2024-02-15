@@ -119,6 +119,15 @@ namespace WinterSolstice {
 			SpriteRendererComponent(float b)
 				:border(b) {};
 		};
+		struct BloomComponent {
+			float BloomIntensity = 0.0f;
+			float BloomThreshold = 0.0f;
+			float BloomBlur = 0.0f;
+			BloomComponent() = default;
+			BloomComponent(const BloomComponent&) = default;
+			BloomComponent(float BloomBlur)
+				:BloomBlur(BloomBlur) {};
+		};
 
 		struct AwalysShineComponent {
 			Ref<Kallen::Light> AwalysShine;

@@ -32,7 +32,12 @@ add_library(WinterSolstice-Core
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Core/True.cpp"
 
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImGuiLayer.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImCurveEdit.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImGradient.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImGuizmo.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImSequencer.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Light/Light.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Math/Math.cpp"
 
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Render/Shader.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Render/Buffer.cpp"
@@ -73,6 +78,7 @@ PRIVATE
     -DGLFW_INCLUDE_NONL
     -DIMGUI_IMPL_OPENGL_LOADER_GLAD
     -DENABLE_ASSERTS
+    -DIMGUI_DEFINE_MATH_OPERATORS
 )
 target_precompile_headers(WinterSolstice-Core PRIVATE "k423.h")
 # 或者对于多个头文件：
@@ -115,7 +121,15 @@ PUBLIC  "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice.h"
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Core/True.h"
 
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImGuiLayer.h"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImCurveEdit.h"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImGradient.h"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImGuizmo.h"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/ImGui/ImSequencer.h"
+
+        
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Light/Light.h"
+        "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Math/Math.h"
+       
 
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Events/ApplicationEvent.h"
         "${CMAKE_CURRENT_LIST_DIR}/WinterSolstice/Events/Event.h"

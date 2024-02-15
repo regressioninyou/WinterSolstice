@@ -66,11 +66,11 @@ namespace WinterSolstice {
 			Ref<Bronya::Texture2D> DefaultTexture;
 
 			std::unordered_map<uint32_t, glm::mat4> m_TransformMat;
-			std::vector<std::future<int>> WaitTransformTask;
+			std::vector<std::shared_future<int>> WaitTransformTask;
 			std::recursive_mutex WaitTransformTaskMutex;
 			std::recursive_mutex AddTransformMapMutex;
 
-			std::vector<std::future<int>> WaitRenderTasks;
+			std::vector<std::shared_future<int>> WaitRenderTasks;
 			std::mutex WaitRenderMutex;
 
 			friend class Entity;

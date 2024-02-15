@@ -203,8 +203,12 @@ namespace WinterSolstice {
 
 			if (m_ColorAttachments.size() > 1)
 			{
-				Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 4);
-				GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+				Kiana_CORE_ASSERT(m_ColorAttachments.size() <= 5);
+				GLenum buffers[5] = { GL_COLOR_ATTACHMENT0, 
+					GL_COLOR_ATTACHMENT1, 
+					GL_COLOR_ATTACHMENT2, 
+					GL_COLOR_ATTACHMENT3,
+					GL_COLOR_ATTACHMENT4 };
 				glDrawBuffers(m_ColorAttachments.size(), buffers);
 				//glDrawBuffers(m_ColorAttachments.size(), buffers);
 
@@ -297,6 +301,10 @@ namespace WinterSolstice {
 			for (uint32_t i = 0; i < m_ColorAttachments.size(); i++) {
 				glBindTextureUnit(i, m_ColorAttachments[i]);
 			}
+		}
+		void OpenGLFramebuffer::BindColorAttachments(uint32_t slot, uint32_t index)
+		{
+			glBindTextureUnit(slot, m_ColorAttachments[index]);
 		}
 		void OpenGLFramebuffer::UnBindTextureID(FramebufferTextureFormat format, uint32_t slot)
 		{

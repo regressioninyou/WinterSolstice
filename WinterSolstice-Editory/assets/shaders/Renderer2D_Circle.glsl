@@ -50,8 +50,10 @@ void main()
 
 layout (location = 0) out vec4 o_Color;
 layout (location = 1) out int o_EntityID;
-layout (location = 2) out vec4 gPosition;
-layout (location = 3) out vec4 gNormal;
+layout (location = 2) out vec4 o_Bloom;
+
+layout (location = 3) out vec4 o_Position;
+layout (location = 4) out vec4 o_Normal;
 
 struct VertexOutput
 {
@@ -75,8 +77,9 @@ void main()
 
 	if (circle == 0.0)
 		discard;
-	gPosition = vec4(Input.WorldPosition,1.0);
-	gNormal = vec4(Input.Normal,1.0);
+	o_Bloom = vec4(1.0);
+	o_Position = vec4(Input.WorldPosition,1.0);
+	o_Normal = vec4(Input.Normal,1.0);
     // Set output color
     o_Color = Input.Color;
 	o_Color.a *= circle;

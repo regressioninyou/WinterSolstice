@@ -4,6 +4,7 @@ add_executable(
     "${CMAKE_CURRENT_LIST_DIR}/KyBaoEditor.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/EditorLayout.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Panels/SceneHierarchyPanel.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/ScreenPostProcessing/ScreenPostProcessing.cpp"
 )
 target_compile_definitions(Editor
 PRIVATE
@@ -13,6 +14,7 @@ target_sources(
     Editor PUBLIC
         "${CMAKE_CURRENT_LIST_DIR}/EditorLayout.h"
         "${CMAKE_CURRENT_LIST_DIR}/Panels/SceneHierarchyPanel.h"
+        "${CMAKE_CURRENT_LIST_DIR}/ScreenPostProcessing/ScreenPostProcessing.h"
 )
 #target_sources(Editor 
 #PUBLIC

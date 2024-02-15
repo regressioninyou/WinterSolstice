@@ -1,8 +1,11 @@
 #version 450 core
 layout (location = 0) out vec4 gAlbedoSpec;
 layout (location = 1) out int gEntity;
-layout (location = 2) out vec4 gPosition;
-layout (location = 3) out vec4 gNormal;
+layout (location = 2) out vec4 gBloom;
+
+layout (location = 3) out vec4 gPosition;
+layout (location = 4) out vec4 gNormal;
+
 layout (binding = 0) uniform sampler2D u_Textures[32];
 
 in vec2 TexCoords;
@@ -14,6 +17,7 @@ const int TYPE_TEXTURE_MAXCOUNT = 4;
 uniform int u_texture_Diffuse[TYPE_TEXTURE_MAXCOUNT];
 uniform int u_texture_Specular[TYPE_TEXTURE_MAXCOUNT];
 uniform int uEntity;
+uniform int uBloom;
 
 vec4 GetTexColor(int index){
 	vec4 texColor = vec4(1.0,1.0,1.0,1.0);
@@ -69,4 +73,5 @@ void main()
     // store specular intensity in gAlbedoSpec's alpha component
     gAlbedoSpec.a = 1.0;
 	gEntity = uEntity;
+	gBloom = vec4(0.0);
 }

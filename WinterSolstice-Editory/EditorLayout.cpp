@@ -2,6 +2,8 @@
 #include "EditorLayout.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "WinterSolstice/Utils/PlatformUtils.h"
+#include <WinterSolstice/ImGui/ImGuizmo.h>
+#include <WinterSolstice/Math/Math.h>
 #define SHADERSOURCE(x) std::string("T:/orther/main/c++/WinterSolstice/WinterSolstice-Editory/assets/shaders/").append(x)
 namespace WinterSolstice {
 	EditorLayout::EditorLayout()
@@ -17,9 +19,15 @@ namespace WinterSolstice {
 		m_Texture2D = Bronya::Texture2D::Create("./assets/textures/Checkerboard.png");
 		Bronya::FramebufferSpecification fbsf;
 		fbsf.Attachments = {
+			//baseColor
 			Bronya::FramebufferTextureFormat::RGBA16F,
+			//entity
 			Bronya::FramebufferTextureFormat::RED_INTEGER,
+			//Bloom
 			Bronya::FramebufferTextureFormat::RGBA16F,
+			//Position
+			Bronya::FramebufferTextureFormat::RGBA16F,
+			//Normal
 			Bronya::FramebufferTextureFormat::RGBA16F,
 			Bronya::FramebufferTextureFormat::Depth
 		};
@@ -29,23 +37,29 @@ namespace WinterSolstice {
 
 		Bronya::FramebufferSpecification gBuffer;
 		gBuffer.Attachments = {
+			//baseColor
 			Bronya::FramebufferTextureFormat::RGBA16F,
+			//entity
 			Bronya::FramebufferTextureFormat::RED_INTEGER,
+			//Bloom
+			Bronya::FramebufferTextureFormat::RGBA16F,
 			Bronya::FramebufferTextureFormat::Depth
 		};
 		gBuffer.Width = 1600.0f;
 		gBuffer.Height = 900.0f;
 
 		m_Gbuffer = Bronya::Framebuffer::Create(gBuffer);
+		//HDR_Buffer = Bronya::Framebuffer::Create(HDR);
 
 		m_ActiveScene = CreateRef<Raiden::Scene>();
 		m_ActiveScene->SetDefaultImage(m_Texture2D);
 
 		editorCamera = Rossweisse::EditorCamera(30.0f, 1.778f, 0.5f, 5000.0f);
 
-		m_ShaderLibrary->Add("Tirangle", Bronya::Shader::Create("./assets/shaders/Model_vs.glsl", "./assets/shaders/Model_fs.glsl"));
+		//m_ShaderLibrary->Add("Tirangle", Bronya::Shader::Create("./assets/shaders/Model_vs.glsl", "./assets/shaders/Model_fs.glsl"));
 		//m_ShaderLibrary->Add("Blue", KyBao::Shader::CreateMeshShader("MeshShader", msSrc));
-		m_ShaderLibrary->Add("Blue", Bronya::Shader::Create("./assets/shaders/Texture_vs.glsl", "./assets/shaders/Texture_fs.glsl"));
+		//m_ShaderLibrary->Add("Blue", Bronya::Shader::Create("./assets/shaders/Texture_vs.glsl", "./assets/shaders/Texture_fs.glsl"));
+		//HDR_shader = Bronya::Shader::Create(SHADERSOURCE("HDR/HDR.vs"), SHADERSOURCE("HDR/HDR.fs"));
 		//obj = KyBao::Loder::Get()->loadOBJ("./assets/Model/nanosuit/nanosuit.obj");
 		//obj = KyBao::Loder::Get()->loadOBJ("C:/Users/sa/Desktop/Assest/just-a-girl/source/final_v01.obj");
 		m_Hierarchy.SetContext(m_ActiveScene);
@@ -104,6 +118,7 @@ namespace WinterSolstice {
 					m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 					m_Gbuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 				});
+			m_ScreenProcess.OnResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 			//m_CameraController.OnResize(m_ViewportSize.x, m_ViewportSize.y);
 			editorCamera.SetViewportSize(m_ViewportSize.x, m_ViewportSize.y);
 			m_ActiveScene->OnViewportResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
@@ -202,6 +217,25 @@ namespace WinterSolstice {
 				m_Gbuffer->Unbind();
 			};
 		Application::Get().RenderThread()->AddTaskAwait(SubScreen);
+#if 0
+		auto HDR = [this]() {
+			HDR_Buffer->Bind();
+			Bronya::RenderCommand::SetClearColor(glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f });
+			Bronya::RenderCommand::Clear();
+			Bronya::Renderer::ResetStats();
+			auto RendererScreen = [this]() {
+				HDR_shader->Bind();
+				HDR_shader->SetBool("hdr", true);
+				HDR_shader->SetFloat("exposure", 1.0f);
+				m_Gbuffer->BindColorAttachments(0, 0);
+				};
+			Bronya::Renderer::DrawScreen(m_SquareVA, std::move(RendererScreen));
+
+			HDR_Buffer->Unbind();
+			};
+		Application::Get().RenderThread()->AddTaskAwait(HDR);
+#endif
+		m_ScreenProcess.OnUpdate(m_Gbuffer);
 	}
 	void EditorLayout::OnImGuiRender()
 	{
@@ -306,7 +340,7 @@ namespace WinterSolstice {
 			m_ViewportHovers = ImGui::IsWindowHovered();
 			Application::Get().GetImGuiLayer()->SetBlockFocosEvents(!m_ViewportHovers);
 
-			uint32_t renderID = m_Gbuffer->GetColorAttachmentRendererID();
+			uint32_t renderID = m_ScreenProcess.GetRenderer();
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
 			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
@@ -327,14 +361,69 @@ namespace WinterSolstice {
 
 
 			Raiden::Entity selectedEntity = m_Hierarchy.SeletedEntity();
-			if (selectedEntity)
+			if (selectedEntity && m_GizmoType != -1)
 			{
+				ImGuizmo::SetOrthographic(false);
+				ImGuizmo::SetDrawlist();
 
+				ImGuizmo::SetRect(m_ViewportBound[0].x, m_ViewportBound[0].y, m_ViewportBound[1].x - m_ViewportBound[0].x, m_ViewportBound[1].y - m_ViewportBound[0].y);
+
+				// Camera
+
+				// Runtime camera from entity
+				// auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
+				// const auto& camera = cameraEntity.GetComponent<CameraComponent>().Camera;
+				// const glm::mat4& cameraProjection = camera.GetProjection();
+				// glm::mat4 cameraView = glm::inverse(cameraEntity.GetComponent<TransformComponent>().GetTransform());
+
+				// Editor camera
+				const glm::mat4& cameraProjection = editorCamera.GetProjection();
+				glm::mat4 cameraView = editorCamera.GetViewMatrix();
+
+				// Entity transform
+				auto& tc = selectedEntity.GetComponent<Raiden::TransformComponent>();
+				glm::mat4 transform = tc.GetTransform();
+
+				// Snapping
+				bool snap = Input::IsKeyPressed(Key::LeftControl);
+				float snapValue = 0.5f; // Snap to 0.5m for translation/scale
+				// Snap to 45 degrees for rotation
+				if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+					snapValue = 45.0f;
+
+				float snapValues[3] = { snapValue, snapValue, snapValue };
+
+				ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+					(ImGuizmo::OPERATION)m_GizmoType, ImGuizmo::LOCAL, glm::value_ptr(transform),
+					nullptr, snap ? snapValues : nullptr);
+
+				if (ImGuizmo::IsUsing())
+				{
+					glm::vec3 translation, rotation, scale;
+					Sakura::DecomposeTransform(transform, translation, rotation, scale);
+
+					glm::vec3 deltaRotation = rotation - tc.Rotation;
+					tc.Translation = translation;
+					tc.Rotation += deltaRotation;
+					tc.Scale = scale;
+				}
 			}
 
 			ImGui::End();
 		}
 #if USE_IMGUI_GBUFFER
+		{
+			ImGui::Begin("m_Gbuffer");
+
+			uint32_t renderID = m_Gbuffer->GetColorAttachmentRendererID();
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+			m_ViewportSize = { viewportPanelSize.x,viewportPanelSize.y };
+			ImGui::Image((void*)renderID, ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0,1 }, ImVec2{ 1,0 });
+
+
+			ImGui::End();
+		}
 		{
 			ImGui::Begin("GBufferPosition");
 
@@ -375,7 +464,7 @@ namespace WinterSolstice {
 		ImGui::PopStyleVar();
 
 		ImGui::End();
-
+		m_ScreenProcess.OnImGuiRender();
 	}
 
 	void EditorLayout::OnEvent(KnowTreasure::Event& event)
@@ -412,6 +501,45 @@ namespace WinterSolstice {
 		{
 			if (control)
 				SaveSceneAs();
+			break;
+		}
+
+		// Gizmos
+		case Key::Q:
+		{
+			if (!ImGuizmo::IsUsing())
+				m_GizmoType = -1;
+			break;
+		}
+		case Key::W:
+		{
+			if (!ImGuizmo::IsUsing())
+				m_GizmoType = ImGuizmo::OPERATION::TRANSLATE;
+			break;
+		}
+		case Key::E:
+		{
+			if (!ImGuizmo::IsUsing())
+				m_GizmoType = ImGuizmo::OPERATION::ROTATE;
+			break;
+		}
+		case Key::R:
+		{
+			if (!ImGuizmo::IsUsing())
+				m_GizmoType = ImGuizmo::OPERATION::SCALE;
+			break;
+		}
+		case Key::Delete:
+		{
+			if (Application::Get().GetImGuiLayer()->GetActiveWidgetID() == 0)
+			{
+				WinterSolstice::Raiden::Entity selectedEntity = m_Hierarchy.SeletedEntity();
+				if (selectedEntity)
+				{
+					//m_SceneHierarchyPanel.SetSelectedEntity({});
+					//m_ActiveScene->DestroyEntity(selectedEntity);
+				}
+			}
 			break;
 		}
 		}
