@@ -30,7 +30,7 @@ namespace WinterSolstice {
 				: TextureFormat(format)
 				//,Name("None") 
 			{}
-			FramebufferTextureSpecification(FramebufferTextureFormat format,const std::string& name)
+			FramebufferTextureSpecification(FramebufferTextureFormat format, const std::string& name)
 				: TextureFormat(format)
 				//,Name(name) 
 			{}
@@ -76,19 +76,22 @@ namespace WinterSolstice {
 
 			virtual const FramebufferSpecification& GetSpecification() const = 0;
 
+			virtual void BindTextureID(uint32_t slot, uint32_t index) = 0;
 			virtual void BindTextureID(FramebufferTextureFormat format, uint32_t slot) = 0;
 			virtual void BindColorAttachments() = 0;
-			virtual void BindColorAttachments(uint32_t slot,uint32_t index) = 0;
+			virtual void BindColorAttachments(uint32_t slot, uint32_t index) = 0;
 			virtual void UnBindTextureID(FramebufferTextureFormat format, uint32_t slot) = 0;
+			virtual size_t GetAttachmentsSize() = 0;
 
 			virtual uint32_t GetRendererID() = 0;
 			virtual void ToOtherFramebuffer(uint32_t slot = 0) = 0;
-			virtual void ToOtherFramebuffer(uint32_t slot,const FramebufferSpecification& slotFormat) = 0;
+			virtual void ToOtherFramebuffer(uint32_t slot, const FramebufferSpecification& slotFormat) = 0;
 
 			virtual void BindReadBuffer(uint32_t slot) = 0;
 			virtual void BindDrawBuffer(uint32_t slot) = 0;
 
 			static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
+			static Ref<Framebuffer> Create(const FramebufferSpecification& spec, uint32_t level);
 		};
 
 

@@ -211,7 +211,7 @@ private:
 	KyBao::BVHAccel bvh;
 };
 #endif
-#if 1
+#if 0
 class ExampleLayer :public KyBao::Layer
 {
 public:

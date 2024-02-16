@@ -25,8 +25,10 @@ namespace WinterSolstice {
 		HDR hdr;
 		Ref<Bronya::Shader> Processing_HDRShader;
 		Ref<Bronya::Shader> Processing_BloomShader;
+		Ref<Bronya::Shader> Processing_ResultShader;
 		Ref<Bronya::VertexArray> Processing_Screen;
-		Ref<Bronya::Framebuffer> Processing_Bloom;
+		std::vector<Ref<Bronya::Framebuffer>> Processing_Bloom;
 		Ref<Bronya::Framebuffer> Processing_HDR;
+		Ref<Bronya::Framebuffer> Processing_EndResult;
 	};
 }

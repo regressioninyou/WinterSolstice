@@ -1,31 +1,33 @@
 #version 450 core
-layout (location = 0) out vec4 FragColor;
+layout (location = 0) out vec4 FragColor0;
 
 in vec2 TexCoords;
 
 layout (binding = 0) uniform sampler2D HDR;
-layout (binding = 1) uniform sampler2D EmiinseHDR;
-uniform float weight[5] = float[] (0.2270270270, 0.1945945946, 0.1216216216, 0.0540540541, 0.0162162162);
+uniform int uOutLevel;
+vec3 sampleHDRTexture(vec2 uv, vec2 textureSize) {
+    ivec2 texelCoords = ivec2(uv * textureSize); // 将纹理坐标转换为纹理坐标
 
+    // 采样当前位置的像素值以及其上下左右四个位置的像素值
+    vec3 colorCenter = texelFetch(HDR, texelCoords, 0).rgb;
+    vec3 colorUp = texelFetch(HDR, texelCoords + ivec2(0, 1), 0).rgb;
+    vec3 colorDown = texelFetch(HDR, texelCoords + ivec2(0, -1), 0).rgb;
+    vec3 colorLeft = texelFetch(HDR, texelCoords + ivec2(-1, 0), 0).rgb;
+    vec3 colorRight = texelFetch(HDR, texelCoords + ivec2(1, 0), 0).rgb;
+
+    // 将四个位置的像素值相加并除以4，得到新的像素值
+    vec3 averagedColor = (colorCenter + colorUp + colorDown + colorLeft + colorRight) / 5.0;
+
+    return averagedColor;
+}
+
+vec2 getTextureSize(sampler2D textureSampler) {
+    return textureSize(textureSampler, 0);
+}
 void main()
 {             
-     vec2 tex_offset = 1.0 / textureSize(EmiinseHDR, 0); // gets size of single texel
-     vec3 result = texture(EmiinseHDR, TexCoords).rgb * weight[0];
-     if(texture(EmiinseHDR, TexCoords).a > 0.0 ){
-         // 使用单层循环代替双重循环
-         for(int i = 1; i < 5; ++i)
-         {
-             vec2 offset = vec2(tex_offset.x * i, tex_offset.y * i);
-             // 水平方向模糊
-             result += texture(EmiinseHDR, TexCoords + offset).rgb * weight[i];
-             result += texture(EmiinseHDR, TexCoords - offset).rgb * weight[i];
-             // 垂直方向模糊
-             result += texture(EmiinseHDR, TexCoords + offset.yx).rgb * weight[i];
-             result += texture(EmiinseHDR, TexCoords - offset.yx).rgb * weight[i];
-         }
-     }
+	vec2 TexSize = getTextureSize(HDR);
+    vec4 outColor = vec4(sampleHDRTexture(TexCoords,TexSize),1.0);
 
-     // 从HDR纹理中获取颜色
-     vec4 hdr = texture(HDR,TexCoords);
-     FragColor = vec4(result, 1.0) * .5 + hdr * .5;
+	FragColor0 = outColor;
 }

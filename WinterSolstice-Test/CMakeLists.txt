@@ -2,7 +2,8 @@ add_executable(Testing
 "Test.cpp" 
 #"SandBoxAppRender.cpp"
  #"SandBox2D.cpp"
- "TestLoader.h")
+# "TestLoader.h"
+)
 target_compile_definitions(Testing
 PRIVATE
     -DPLATFORM_WINDOWS
